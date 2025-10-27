@@ -1,0 +1,1 @@
+-- Placeholder for Supabase schema baseline. Phase 1 will populate this file with the applied DDL, RLS policies, and views.
