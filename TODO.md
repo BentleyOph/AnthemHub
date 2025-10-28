@@ -53,7 +53,7 @@ Deliverables
 - Minimal file and directory scaffolding aligned with README structure.
 
 Tasks
-- [x] Create directories: `app/admin`, `app/catalog`, `app/my/workflows`, `app/history`, `app/workflows/[id]`, `app/api`
+- [x] Create directories: `app/admin`, `app/(client)/catalog`, `app/(client)/workflows`, `app/(client)/history`, `app/(client)/workflows/[id]`, `app/api`
 - [x] Create directories: `lib/supabase`, `lib/auth`, `lib/queue`, `lib/storage`, `lib/schema`, `lib/sql`
 - [x] Bootstrap `lib/supabase/{client,server}.ts`
 - [x] Bootstrap `lib/auth/guards.ts` (role checks) and `lib/auth/session.ts`
@@ -127,12 +127,47 @@ Acceptance
 - [ ] Access mapping replaces full set atomically
 - [ ] Client details show aggregates (counts) if implemented
 
+### Phase 3A — Admin: Overview Dashboard (/admin/overview)
+Deliverables
+- Admin Overview dashboard matching the provided wireframe.
+- Server data pipes (read-only) for metrics and charts.
+
+Layout (desktop)
+- Top metrics row (4 cards):
+  - Total executions (today)
+  - Success rate of executions
+  - Active clients
+  - Pending access requests
+- Middle row:
+  - Executions chart (Day/Week/Month toggle)
+  - Most used workflows (top N by executions)
+- Bottom row:
+  - Recent executions table (last 20)
+  - Most active clients (top N by executions)
+
+Tasks
+- [x] Sidebar: rename to “Anthem Agency”; nav items → Overview, Workflows, Executions, Clients, Access Requests
+- [x] Replace dashboard content with purpose-built components
+- [x] Implement `ExecutionsChart` with Day/Week/Month toggle (demo data)
+- [x] Implement `OverviewCards`, `TopWorkflows`, `TopClients`, `RecentExecutions` (demo data)
+- [ ] Wire data from Supabase:
+  - [ ] KPIs via single RPC/view (today counts, active clients, pending requests)
+  - [ ] Executions aggregates: daily/weekly/monthly view (`v_executions_daily`, etc.)
+  - [ ] Top workflows and top clients (LIMIT 5)
+  - [ ] Recent executions list with status, workflow, client, started_at
+- [ ] Access control: if user role = CLIENT → redirect to client overview (separate design)
+
+Acceptance
+- [ ] Desktop layout matches wireframe structure
+- [ ] All metrics/sections render with real data
+- [ ] Admin-only access (middleware + server guards)
+
 ## Phase 5 — Catalog & Client UX
 Deliverables
 - Public catalog of published workflows; personal view of assigned workflows; run form.
 
 Tasks
-- [ ] Pages: `app/catalog`, `app/my/workflows`, `app/workflows/[id]/run`
+- [ ] Pages: `app/(client)/catalog`, `app/(client)/workflows`, `app/(client)/workflows/[id]/run`
 - [ ] Dynamic form renderer from JSON Schema → shadcn/ui components
 - [ ] Client-side Zod validation mirroring server schema
  - [ ] API: `POST /api/requests/access` (from workflow page if not assigned)
@@ -155,7 +190,7 @@ Tasks
   - [ ] Enqueue BullMQ job `exec:start` with correlation data and callback URL
 - [ ] API: `GET /api/executions/:id` (respect RLS)
 - [ ] API: `GET /api/executions` (admin filters)
-- [ ] UI: `app/history` and execution details page with stream panel
+- [ ] UI: `app/(client)/executions` and `app/(client)/history` execution details page with stream panel
 
 Acceptance
 - [ ] RLS enforced on fetches
@@ -224,7 +259,7 @@ Deliverables
 
 Tasks
 - [ ] Views or RPCs for daily counts, top workflows/clients
-- [ ] Pages in `app/admin/dashboard`
+- [ ] Pages in `app/admin/overview`
 - [ ] Recharts components for: Executions over time, Most used workflows, Most active clients
 - [ ] Recent failures table with links to details
 
@@ -283,15 +318,15 @@ Server-to-server
 
 ## UI Routes (App Router)
 Admin
-- [ ] `app/admin/dashboard`
+- [ ] `app/admin/overview`
 - [ ] `app/admin/workflows` (list/create/edit)
 - [ ] `app/admin/clients` (list/details/access)
 
 Client
-- [ ] `app/catalog`
-- [ ] `app/my/workflows`
-- [ ] `app/workflows/[id]/run`
-- [ ] `app/history`
+- [ ] `app/(client)/catalog`
+- [ ] `app/(client)/workflows`
+- [ ] `app/(client)/workflows/[id]/run`
+- [ ] `app/(client)/history`
 - [ ] `app/executions/[id]` (details)
 
 ## Non-Goals (initial)

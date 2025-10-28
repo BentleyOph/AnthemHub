@@ -2,6 +2,13 @@
 An all-in-one platform for selling and operating pre-built n8n automations as products. Admins register workflows (with input schemas, webhook URLs, and visibility), assign access to clients, and monitor success/error metrics. Clients browse available workflows, run the ones they have access to, and view/download results. Include execution tracking, per-client access control, and a callback + SSE flow for real-time status.
 
 
+### Route Migration (October 2024)
+
+- `/auth/login` → `/login`
+- `/dashboard` → `/admin/overview`
+- `/my/workflows` → `/overview` (client landing) and `/workflows`
+
+
 
 ## 1) Stack Overview (Updated)
 
@@ -446,29 +453,6 @@ RATE_LIMIT_EXEC_START_PER_MIN=10
 
 ---
 
-## 10) Project Structure (No ORM)
-
-```
-/app
-  /(app)                 # protected shell
-  /admin/...
-  /catalog
-  /my/workflows
-  /workflows/[id]/run
-  /history
-  /api/...               # route handlers (supabase-js, zod)
-/lib
-  /supabase              # user/server clients, auth helpers
-  /auth                  # role guards
-  /queue                 # bullmq init, publishers, consumers
-  /storage               # supabase-storage or s3 utils
-  /schema                # zod validators, JSON-schema helpers
-  /sql                   # DDL, RLS, views, RPCs (files)
-/workers
-  /exec-start.ts
-```
-
----
 
 ## 11) Testing & Seed
 
@@ -574,8 +558,8 @@ const { data } = await supabaseClient
 
 8. **Client UX**
 
-   * `/catalog`, `/my/workflows`, `/workflows/:id/run` (schema→form)
-   * `/history` + details + download
+   * `/overview`, `/catalog`, `/workflows`, `/workflows/:id/run` (schema→form)
+   * `/executions` + `/history` details + download
 
 9. **Dashboards**
 
