@@ -36,14 +36,14 @@ export default async function Home() {
   const user = data.user;
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const role = await resolveRole(user!);
 
   if (role === "ADMIN") {
-    redirect("/admin/users");
+    redirect("/admin/overview");
   }
 
-  redirect("/my/workflows");
+  redirect("/overview");
 }
