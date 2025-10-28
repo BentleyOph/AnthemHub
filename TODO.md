@@ -89,14 +89,14 @@ Deliverables
 - Role/client assignment flows accessible to admin.
 
 Tasks
-- [ ] `lib/supabase/server.ts` and `lib/supabase/client.ts` helpers
-- [ ] On auth callback/session, ensure `user_profile` row exists (id=email=auth values)
-- [ ] Admin-only UI to set role and client mapping for users
-- [ ] Route guards/utilities in `lib/auth` (e.g., `requireAdmin`, `requireClient`)
+- [x] `lib/supabase/server.ts` and `lib/supabase/client.ts` helpers
+- [x] On auth callback/session, ensure `user_profile` row exists (id=email=auth values)
+- [x] Admin-only UI to set role and client mapping for users
+- [x] Route guards/utilities in `lib/auth` (e.g., `requireAdmin`, `requireClient`)
 
 Acceptance
-- [ ] New user signs in → profile row created; defaults to CLIENT
-- [ ] Admin can promote user to ADMIN and assign `client_id`
+- [x] New user signs in → profile row created; defaults to CLIENT
+- [x] Admin can promote user to ADMIN and assign `client_id`
 
 ## Phase 3 — Admin: Workflows CRUD
 Deliverables

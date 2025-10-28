@@ -44,7 +44,7 @@ export function resolveRedisConnection(): ConnectionOptions {
 }
 
 export function createExecutionQueue(
-  options: QueueOptions = {},
+  options: Partial<QueueOptions> = {},
 ): Queue<ExecutionJob> {
   const connection = options.connection ?? resolveRedisConnection();
 

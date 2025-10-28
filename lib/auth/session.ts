@@ -10,8 +10,7 @@ export interface AppSession {
 
 function resolveRole(session: Session): AppRole {
   const metadataRole =
-    (session.user?.app_metadata as Record<string, unknown> | undefined)?.role ??
-    (session.user?.user_metadata as Record<string, unknown> | undefined)?.role;
+    (session.user?.app_metadata as Record<string, unknown> | undefined)?.role
 
   if (metadataRole === "ADMIN" || metadataRole === "CLIENT") {
     return metadataRole;
