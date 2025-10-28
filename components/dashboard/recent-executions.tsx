@@ -1,63 +1,94 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-type Exec = {
-  id: string
-  workflow: string
-  client: string
-  status: "SUCCESS" | "ERROR" | "PROCESSING"
-  startedAt: string
-}
+export type RecentExecutionItem = {
+  id: string;
+  workflow: string;
+  client: string;
+  status: "SUCCESS" | "ERROR" | "PROCESSING" | "PENDING";
+  startedAt: string;
+};
 
-const defaults: Exec[] = [
-  { id: "e_01H", workflow: "Invoice Extractor", client: "Acme Ltd", status: "SUCCESS", startedAt: new Date().toISOString() },
-  { id: "e_02H", workflow: "Lead Enrichment", client: "Globex", status: "ERROR", startedAt: new Date(Date.now() - 36e5).toISOString() },
-  { id: "e_03H", workflow: "Report Generator", client: "Initech", status: "SUCCESS", startedAt: new Date(Date.now() - 2 * 36e5).toISOString() },
-  { id: "e_04H", workflow: "PDF Splitter", client: "Umbrella", status: "PROCESSING", startedAt: new Date(Date.now() - 3 * 36e5).toISOString() },
-]
+const defaults: RecentExecutionItem[] = [
+  {
+    id: "e_01H",
+    workflow: "Invoice Extractor",
+    client: "Acme Ltd",
+    status: "SUCCESS",
+    startedAt: new Date().toLocaleString(),
+  },
+  {
+    id: "e_02H",
+    workflow: "Lead Enrichment",
+    client: "Globex",
+    status: "ERROR",
+    startedAt: new Date(Date.now() - 36e5).toLocaleString(),
+  },
+  {
+    id: "e_03H",
+    workflow: "Report Generator",
+    client: "Initech",
+    status: "SUCCESS",
+    startedAt: new Date(Date.now() - 2 * 36e5).toLocaleString(),
+  },
+  {
+    id: "e_04H",
+    workflow: "PDF Splitter",
+    client: "Umbrella",
+    status: "PROCESSING",
+    startedAt: new Date(Date.now() - 3 * 36e5).toLocaleString(),
+  },
+];
 
-function StatusBadge({ s }: { s: Exec["status"] }) {
-  const map: Record<Exec["status"], string> = {
+function StatusBadge({ s }: { s: RecentExecutionItem["status"] }) {
+  const map: Record<RecentExecutionItem["status"], "secondary" | "destructive" | "outline" | "default"> = {
     SUCCESS: "secondary",
     ERROR: "destructive",
     PROCESSING: "outline",
-  }
-  return <Badge variant={map[s] as any}>{s}</Badge>
+    PENDING: "outline",
+  };
+  return <Badge variant={map[s]}>{s}</Badge>;
 }
 
-export function RecentExecutions({ items = defaults }: { items?: Exec[] }) {
+export function RecentExecutions({ items = defaults }: { items?: RecentExecutionItem[] }) {
+  const hasData = items.length > 0;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Recent executions</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[160px]">Execution</TableHead>
-              <TableHead>Workflow</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead className="w-[140px]">Status</TableHead>
-              <TableHead className="w-[180px]">Started</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((e) => (
-              <TableRow key={e.id}>
-                <TableCell className="font-mono text-xs">{e.id}</TableCell>
-                <TableCell>{e.workflow}</TableCell>
-                <TableCell>{e.client}</TableCell>
-                <TableCell><StatusBadge s={e.status} /></TableCell>
-                <TableCell>
-                  {new Date(e.startedAt).toLocaleString()}
-                </TableCell>
+        {hasData ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[160px]">Execution</TableHead>
+                <TableHead>Workflow</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead className="w-[140px]">Status</TableHead>
+                <TableHead className="w-[180px]">Started</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {items.map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell className="font-mono text-xs">{e.id}</TableCell>
+                  <TableCell>{e.workflow}</TableCell>
+                  <TableCell>{e.client}</TableCell>
+                  <TableCell>
+                    <StatusBadge s={e.status} />
+                  </TableCell>
+                  <TableCell>{e.startedAt}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-sm text-muted-foreground">No recent executions.</p>
+        )}
       </CardContent>
     </Card>
-  )
+  );
 }

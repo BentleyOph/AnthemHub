@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -7,6 +8,7 @@ import {
   IconNotification,
   IconUserCircle,
 } from "@tabler/icons-react"
+import { useRouter } from "next/navigation"
 
 import {
   Avatar,
@@ -28,6 +30,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { logout } from "@/app/actions/logout"
 
 export function NavUser({
   user,
@@ -39,6 +42,22 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+  const [signingOut, setSigningOut] = React.useState(false)
+
+  const handleLogout = React.useCallback(async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    try {
+      await logout()
+      router.replace("/login")
+      router.refresh()
+    } catch (error) {
+      console.error("Failed to log out", error)
+    } finally {
+      setSigningOut(false)
+    }
+  }, [router, signingOut])
 
   return (
     <SidebarMenu>
@@ -98,9 +117,15 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={signingOut}
+              onSelect={(event) => {
+                event.preventDefault()
+                void handleLogout()
+              }}
+            >
               <IconLogout />
-              Log out
+              {signingOut ? "Logging out..." : "Log out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

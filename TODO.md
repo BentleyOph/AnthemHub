@@ -150,16 +150,42 @@ Tasks
 - [x] Replace dashboard content with purpose-built components
 - [x] Implement `ExecutionsChart` with Day/Week/Month toggle (demo data)
 - [x] Implement `OverviewCards`, `TopWorkflows`, `TopClients`, `RecentExecutions` (demo data)
-- [ ] Wire data from Supabase:
-  - [ ] KPIs via single RPC/view (today counts, active clients, pending requests)
-  - [ ] Executions aggregates: daily/weekly/monthly view (`v_executions_daily`, etc.)
-  - [ ] Top workflows and top clients (LIMIT 5)
-  - [ ] Recent executions list with status, workflow, client, started_at
-- [ ] Access control: if user role = CLIENT → redirect to client overview (separate design)
+- [x] Wire data from Supabase (no client exposure of secrets):
+  - [x] Route guard: require ADMIN session at `app/admin/overview` (redirect CLIENTs)
+  - [x] Data owner: fetch in server components or server-only loaders; never expose service role to client
+  - [x] RLS: confirm RPC/view invoker can read needed tables as ADMIN; otherwise run on server with service-role key
+  - [x] KPIs (OverviewCards):
+    - [x] Call RPC `get_admin_overview_kpis()` using server Supabase client
+    - [x] Map fields → cards: `executions_today`, `success_rate_7d`, `active_clients_today`, `pending_requests_count`
+    - [x] Handle empty DB edge-cases (e.g., success rate defaults to 100 per SQL)
+  - [x] Top Workflows (TopWorkflows):
+    - [x] Call RPC `get_top_workflows({ limit_count: 5 })`
+    - [ ] Display `name` and `executions`; link to workflow details if available
+  - [x] Top Clients (TopClients):
+    - [x] Call RPC `get_top_clients({ limit_count: 5 })`
+    - [ ] Display `name` and `executions`; link to client details if available
+  - [x] Recent Executions (RecentExecutions):
+    - [x] Query view `v_execution_details` ordered by `started_at DESC` LIMIT 20
+    - [x] Show columns: `status`, `workflow_name`, `client_name`, `started_at`, optional `error_message`
+    - [ ] Link each row to execution details if route exists
+  - [x] Executions Chart (ExecutionsChart):
+    - [x] For Day: group executions by hour over last 24h
+    - [x] For Week: group executions by day over last 7d
+    - [x] For Month: group executions by day over last 30d
+    - [x] Source data: prefer existing aggregates (e.g., `v_executions_daily`) if present; otherwise compute from `execution` or `v_execution_details`
+  - [x] Loading + error states: skeletons for cards/lists; show toast or inline message on fetch failure
+  - [x] Timezone + formatting: format timestamps to `Africa/Nairobi`
+  - [x] Caching strategy: server-side revalidate every 30–60s or `no-store` for live metrics; tag-based revalidation optional
+  - [x] Types: define TS shapes for RPC/view results; validate with Zod where props cross the RSC boundary
+- [x] Observability: console/server logs for RPC failures (dev only); graceful fallbacks in UI
+- [x] Access control: if user role = CLIENT → redirect to client overview (separate design)
 
 Acceptance
 - [ ] Desktop layout matches wireframe structure
-- [ ] All metrics/sections render with real data
+- [ ] KPIs match manual SQL in Supabase for same windows
+- [ ] Top workflows/clients lists reflect RPC output and are correctly sorted
+- [ ] Recent executions show latest 20 with correct names/status/time
+- [ ] Chart toggles (Day/Week/Month) switch datasets and totals align with table counts when windows overlap
 - [ ] Admin-only access (middleware + server guards)
 
 ## Phase 5 — Catalog & Client UX
