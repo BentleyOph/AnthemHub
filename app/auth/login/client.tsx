@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 export default function LoginClient() {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -11,20 +12,52 @@ export default function LoginClient() {
   const search = useSearchParams();
   const router = useRouter();
 
-  const redirectTo = useMemo(() => {
-    return (
+  const { redirectTo, hasExplicitRedirect } = useMemo(() => {
+    const explicit =
       search.get("next") ||
       search.get("redirect") ||
-      search.get("redirectTo") ||
-      "/"
-    );
+      search.get("redirectTo");
+
+    return {
+      redirectTo: explicit || "/",
+      hasExplicitRedirect: Boolean(explicit),
+    };
   }, [search]);
+
+  const redirectAfterLogin = useCallback(
+    (session: Session | null | undefined) => {
+      const baseDestination = redirectTo || "/";
+      if (!session) {
+        router.replace(baseDestination);
+        return;
+      }
+
+      const metadata =
+        (session.user?.app_metadata as Record<string, unknown> | undefined) ??
+        {};
+      const role = typeof metadata.role === "string" ? metadata.role : null;
+
+      const destination =
+        role === "ADMIN" && !hasExplicitRedirect
+          ? "/admin/users"
+          : baseDestination;
+
+      router.replace(destination);
+    },
+    [hasExplicitRedirect, redirectTo, router],
+  );
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
 
     const supabase = getSupabaseBrowserClient();
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        redirectAfterLogin(data.session);
+      }
+    });
 
     // Handle form submit (email/password)
     const form = root.querySelector("form");
@@ -40,13 +73,15 @@ export default function LoginClient() {
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setMessage(error.message ?? "Failed to sign in.");
         return;
       }
 
-      router.replace(redirectTo);
+      const session =
+        data.session || (await supabase.auth.getSession()).data.session || null;
+      redirectAfterLogin(session);
     };
 
     form?.addEventListener("submit", onSubmit);
@@ -84,7 +119,7 @@ export default function LoginClient() {
       form?.removeEventListener("submit", onSubmit);
       root.removeEventListener("click", onClick);
     };
-  }, [redirectTo, router]);
+  }, [redirectAfterLogin, redirectTo, router]);
 
   return (
     <div ref={rootRef} className="flex flex-col gap-4">
