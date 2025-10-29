@@ -24,16 +24,20 @@ import { getWorkflowRunData } from "@/lib/client/workflow-run";
 
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 
+type WorkflowRunData = NonNullable<Awaited<ReturnType<typeof getWorkflowRunData>>>;
+
 interface WorkflowRunPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function WorkflowRunPage({ params }: WorkflowRunPageProps) {
+export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) {
+  const { id } = await params;
+
   return (
     <Suspense fallback={<RunSkeleton />}>
-      <WorkflowRunContent workflowId={params.id} />
+      <WorkflowRunContent workflowId={id} />
     </Suspense>
   );
 }
@@ -152,7 +156,7 @@ async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
 function RequestStatusBadge({
   status,
 }: {
-  status: NonNullable<Awaited<ReturnType<typeof getWorkflowRunData>>["request"]>["status"];
+  status: NonNullable<WorkflowRunData["request"]>["status"];
 }) {
   if (status === "PENDING") {
     return <Badge variant="secondary">Request pending</Badge>;
@@ -176,7 +180,7 @@ function MetadataList({
 }: {
   hasAccess: boolean;
   assignedAt: string | null;
-  request: Awaited<ReturnType<typeof getWorkflowRunData>>["request"];
+  request: WorkflowRunData["request"];
 }) {
   if (!hasAccess && !request) {
     return null;
