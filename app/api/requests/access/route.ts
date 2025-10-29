@@ -1,60 +1,112 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ZodError } from "zod";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
-import { AccessDeniedError } from "@/lib/auth/guards";
-import { requireAdminSession } from "@/lib/auth/require-admin";
-import {
-  listAccessRequests,
-  normalizeAccessRequestListParams,
-} from "@/lib/admin/access-requests/data";
+import { getClientAccessContext } from "@/lib/client/access";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function GET(request: NextRequest) {
-  try {
-    await requireAdminSession();
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
+const requestSchema = z.object({
+  workflowId: z.string().uuid(),
+  note: z
+    .string()
+    .trim()
+    .max(500)
+    .optional(),
+});
 
-    console.error("Failed to authenticate request", error);
+export async function POST(request: NextRequest) {
+  const supabase = await getSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authData.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = request.nextUrl;
-
-  const rawParams = {
-    page: searchParams.get("page") ?? undefined,
-    per_page: searchParams.get("per_page") ?? undefined,
-    status: searchParams.get("status") ?? undefined,
-    client_id: searchParams.get("client_id") ?? undefined,
-    workflow_id: searchParams.get("workflow_id") ?? undefined,
-  } satisfies Record<string, string | string[] | undefined>;
-
-  let normalized;
+  let payload: z.infer<typeof requestSchema>;
   try {
-    normalized = normalizeAccessRequestListParams(rawParams);
+    const json = await request.json();
+    payload = requestSchema.parse(json);
   } catch (error) {
-    if (error instanceof ZodError) {
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid query parameters.", details: error.flatten() },
-        { status: 400 },
+        { error: "Invalid payload.", details: error.flatten() },
+        { status: 422 },
       );
     }
 
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const accessContext = await getClientAccessContext({ supabase });
+
+  if (!accessContext.profile.clientId) {
     return NextResponse.json(
-      { error: (error as Error).message ?? "Invalid query parameters." },
+      { error: "You must be linked to a client before requesting access." },
       { status: 400 },
     );
   }
 
-  try {
-    const result = await listAccessRequests(normalized);
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("Failed to load access requests", error);
+  if (accessContext.assignedWorkflowIds.includes(payload.workflowId)) {
     return NextResponse.json(
-      { error: "Failed to load access requests." },
+      { error: "Workflow already assigned to your workspace." },
+      { status: 409 },
+    );
+  }
+
+  const existingRequest = accessContext.accessRequests.find(
+    (requestRow) => requestRow.workflowId === payload.workflowId,
+  );
+
+  if (existingRequest?.status === "PENDING") {
+    return NextResponse.json(
+      { status: "PENDING", message: "Access request already in progress." },
+      { status: 200 },
+    );
+  }
+
+  const { data: workflowRow, error: workflowError } = await supabase
+    .from("workflow")
+    .select("id, is_published")
+    .eq("id", payload.workflowId)
+    .maybeSingle<{ id: string; is_published: boolean | null }>();
+
+  if (workflowError) {
+    console.error("Failed to load workflow for access request", workflowError);
+    return NextResponse.json(
+      { error: "Unable to validate workflow." },
       { status: 500 },
     );
   }
+
+  if (!workflowRow) {
+    return NextResponse.json({ error: "Workflow not found." }, { status: 404 });
+  }
+
+  if (!workflowRow.is_published) {
+    return NextResponse.json(
+      { error: "Workflow is not available for requests yet." },
+      { status: 400 },
+    );
+  }
+
+  const { error: insertError } = await supabase.from("access_request").insert({
+    workflow_id: payload.workflowId,
+    requester_id: authData.user.id,
+    client_id: accessContext.profile.clientId,
+    note: payload.note ?? null,
+  });
+
+  if (insertError) {
+    console.error("Failed to create access request", insertError);
+    return NextResponse.json(
+      { error: "Unable to create access request." },
+      { status: 500 },
+    );
+  }
+
+  revalidatePath("/catalog");
+  revalidatePath("/workflows");
+  revalidatePath("/overview");
+
+  return NextResponse.json({ status: "PENDING" }, { status: 201 });
 }

@@ -15,6 +15,16 @@ export interface JsonSchema {
   format?: string;
   default?: unknown;
   examples?: unknown[];
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
+  minItems?: number;
+  maxItems?: number;
   anyOf?: JsonSchema[];
   allOf?: JsonSchema[];
   oneOf?: JsonSchema[];
@@ -36,7 +46,7 @@ const jsonSchemaRef: z.ZodType<JsonSchema> = z.lazy(() =>
       title: z.string().optional(),
       description: z.string().optional(),
       properties: z
-        .record(jsonSchemaRef)
+        .record(z.string(), jsonSchemaRef)
         .optional(),
       required: z.array(z.string()).optional(),
       additionalProperties: z.union([z.boolean(), jsonSchemaRef]).optional(),
@@ -46,6 +56,16 @@ const jsonSchemaRef: z.ZodType<JsonSchema> = z.lazy(() =>
       format: z.string().optional(),
       default: z.unknown().optional(),
       examples: z.array(z.unknown()).optional(),
+      minLength: z.number().optional(),
+      maxLength: z.number().optional(),
+      pattern: z.string().optional(),
+      minimum: z.number().optional(),
+      maximum: z.number().optional(),
+      exclusiveMinimum: z.number().optional(),
+      exclusiveMaximum: z.number().optional(),
+      multipleOf: z.number().optional(),
+      minItems: z.number().optional(),
+      maxItems: z.number().optional(),
       anyOf: z.array(jsonSchemaRef).optional(),
       allOf: z.array(jsonSchemaRef).optional(),
       oneOf: z.array(jsonSchemaRef).optional(),

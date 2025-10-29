@@ -1,6 +1,9 @@
-export const ACCESS_REQUEST_STATUSES = ["PENDING", "APPROVED", "DENIED"] as const;
+import {
+  ACCESS_REQUEST_STATUSES,
+  type AccessRequestStatus,
+} from "@/lib/access-requests/constants";
 
-export type AccessRequestStatus = (typeof ACCESS_REQUEST_STATUSES)[number];
+export { ACCESS_REQUEST_STATUSES, type AccessRequestStatus };
 
 export const ACCESS_REQUEST_STATUS_FILTERS = [...ACCESS_REQUEST_STATUSES, "ALL"] as const;
 

@@ -421,6 +421,121 @@ Acceptance
 - [ ] Only published appear in catalog; assigned flagged in list
 - [ ] Run page renders proper controls for schema types
 
+### Phase 5A — Client: Overview Dashboard (My Workflows)
+
+Deliverables
+
+- Client overview page matching the provided sketch (image).
+- Server-fed data for assigned workflows (hero cards), KPIs, recent activity, and discover rail.
+
+Layout (desktop)
+
+- Header: Company Name Dashboard.
+- Top row — Assigned workflows (cards):
+  - Three cards showing image/icon, name, short description, and a primary Run action.
+  - Cards link to `app/(client)/workflows/[id]/run`. Optional “See all” link to full list.
+- Metrics row — three KPI chips:
+  - Executions (month)
+  - Success rate (last 7–30d)
+  - Time saved (est) — optional; see Data notes.
+- Recent activity — table:
+  - Columns: Workflow, Status, Started, Action (e.g., View/Run again).
+- Discover — horizontal scroll rail:
+  - Published workflows not yet assigned to this client; each card shows icon, name, and Request access CTA.
+- Sidebar/nav: Anthem Agency brand; nav items → My Workflows, Catalog, Executions; this view highlights My Workflows.
+
+Data & API
+
+- Assigned workflows hero cards:
+  - Fetch assigned via `GET /api/workflows` filtered to current client; order by last run or created; limit 3.
+  - Include `icon_url`, `name`, `short_description` in shape.
+- KPIs:
+  - Prefer RPC `get_client_overview_kpis(client_id)` returning `executions_7d`, `success_rate_7d`, `last_run_at`, `assigned_workflows`.
+  - Executions (month): count of `execution.started_at` in current calendar month for this client.
+  - Time saved (est): if `workflow.estimated_minutes_saved` exists, compute sum over successful executions in last 30d; otherwise hide or show 0.
+- Recent activity table:
+  - `GET /api/executions?limit=10` (RLS ensures only this client’s data). Columns as above.
+- Discover rail:
+  - `GET /api/workflows` for published minus assigned; cards surface Request access → `POST /api/requests/access`.
+- All data fetched server-side with the user-scoped Supabase client (no service-role in browser).
+
+UX states
+
+- Skeletons for hero cards, KPIs, table rows, and discover rail.
+- Empty states when no assigned workflows or recent activity.
+- Toasts for API errors and request-access success/failure.
+
+Acceptance
+
+- Layout matches the sketch: top assigned cards with Run, KPI row, Recent activity table, and Discover rail.
+- Run buttons deep-link to `app/(client)/workflows/[id]/run` and respect access.
+- Request access flow creates `access_request` and reflects a “Requested” state while pending.
+- KPI values match manual SQL for the same windows.
+- Desktop matches sketch; mobile stacks sections vertically with horizontal scroll for Discover.
+
+### Phase 5B — Client: Executions (/executions)
+
+Deliverables
+
+- A simple, RLS-safe history page listing only the signed-in client’s past executions.
+- Clear status indicators and a Results action: Download when a file was produced; otherwise View Details.
+
+Layout (desktop)
+
+- Header: “Executions” + short helper text.
+- Table (paginated):
+  - Columns: Date (Started), Workflow Name, Status, Result.
+  - Optional: Duration (if available) as a right-aligned column.
+- Row actions:
+  - Primary: row click opens `/executions/[id]` (details with events and payloads).
+  - Result cell: “Download” if `result_file_url` is present; else “View Details”.
+
+Data & API
+
+- Fetch in a server component using the user-scoped Supabase client (leverages RLS; no service-role in the browser).
+- Source: `execution` joined with `workflow` by `workflow_id`.
+- Fields needed: `id`, `workflow_id`, `status`, `started_at`, `finished_at`, `result_file_url`, `workflow.name`.
+- Default sort: `started_at DESC`.
+- Pagination: `page` + `per_page` (20 default). Keep URLs shareable via query params.
+- Status mapping (display labels):
+  - PROCESSING/PENDING → “Processing”
+  - SUCCESS → “Complete”
+  - ERROR → “Failed”
+- Timezone: format `started_at` using `APP_TIMEZONE`.
+- Downloads:
+  - If `result_file_url` is a storage path, sign via server utility in `lib/storage/supabase.ts`.
+  - If already a full URL, link directly with `target="_blank"`.
+
+UX states
+
+- Loading skeleton for table rows.
+- Empty state with a short message and a link to “My Workflows” to run one.
+- Error state with retry.
+- Accessibility: table headers scoped, focus-visible styles, button labels include workflow name.
+
+Permissions & RLS
+
+- RLS policy “client read own executions” guarantees only the current client’s rows are returned.
+- All reads made with user-scoped Supabase client. No admin/service keys in this page.
+
+Routing & Links
+
+- List page: `app/(client)/executions`.
+- Details page: `app/executions/[id]` (shared, RLS-protected view). Link every row and Result → View Details when no download.
+
+Performance
+
+- Query with `eq(client_id, profile.clientId)` and order by `started_at DESC` (index: `idx_execution_started_at`).
+- Select only needed fields; avoid N+1 by joining `workflow (id, name)` in a single call.
+
+Acceptance
+
+- Page shows only the signed-in client’s executions with correct workflow names and statuses.
+- “Download” appears only when a `result_file_url` exists and opens a valid file; otherwise “View Details” navigates to the execution details page.
+- Pagination works and preserves filters/sort via URL params.
+- Timestamps respect configured timezone; statuses use friendly labels and badges.
+- No data is visible across clients (validated via manual RLS checks).
+
 ## Phase 6 — Execution Lifecycle
 
 Deliverables
@@ -611,8 +726,9 @@ Admin
 Client
 
 - [ ] `app/(client)/catalog`
-- [ ] `app/(client)/workflows`
+- [ ] `app/(client)/workflows` (overview dashboard)
 - [ ] `app/(client)/workflows/[id]/run`
+- [ ] `app/(client)/executions`
 - [ ] `app/(client)/history`
 - [ ] `app/executions/[id]` (details)
 
