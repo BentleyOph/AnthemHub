@@ -47,30 +47,34 @@ const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
 
 async function ensureAdminSession() {
   const supabase = await getSupabaseServerClient();
-  const { data } = await supabase.auth.getSession();
-  const session = data.session;
+  const { data, error } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (error) {
+    console.error("Failed to retrieve authenticated user for admin overview", error);
     redirect("/login");
   }
 
-  const metadataRole = session.user?.app_metadata?.role;
+  const user = data.user;
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const metadataRole = user.app_metadata?.role;
   if (metadataRole === "ADMIN") {
-    return session;
+    return;
   }
 
   const admin = getSupabaseServiceRoleClient();
   const { data: profile } = await admin
     .from("user_profile")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .maybeSingle<{ role: "ADMIN" | "CLIENT" | null }>();
 
   if (profile?.role !== "ADMIN") {
     redirect("/overview");
   }
-
-  return session;
 }
 
 function toNumber(value: number | string | null | undefined): number {

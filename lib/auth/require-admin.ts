@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 
 import { AccessDeniedError } from "./guards";
 import {
@@ -7,26 +7,26 @@ import {
 } from "../supabase/server";
 
 /**
- * Ensures the current request is authenticated as an admin user and returns the session.
+ * Ensures the current request is authenticated as an admin user and returns the verified user object.
  * Falls back to querying the `user_profile` table when role metadata is missing on the JWT.
  */
-export async function requireAdminSession(): Promise<Session> {
+export async function requireAdminSession(): Promise<User> {
   const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getUser();
 
   if (error) {
-    console.error("Failed to retrieve Supabase session", error);
+    console.error("Failed to retrieve Supabase user", error);
     throw new AccessDeniedError();
   }
 
-  const session = data.session;
-  if (!session) {
+  const user = data.user;
+  if (!user) {
     throw new AccessDeniedError();
   }
 
-  const metadataRole = session.user?.app_metadata?.role;
+  const metadataRole = user.app_metadata?.role;
   if (metadataRole === "ADMIN") {
-    return session;
+    return user;
   }
 
   try {
@@ -34,7 +34,7 @@ export async function requireAdminSession(): Promise<Session> {
     const { data: profile, error: profileErr } = await service
       .from("user_profile")
       .select("role")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .maybeSingle<{ role: "ADMIN" | "CLIENT" | null }>();
 
     if (profileErr) {
@@ -46,7 +46,7 @@ export async function requireAdminSession(): Promise<Session> {
       throw new AccessDeniedError();
     }
 
-    return session;
+    return user;
   } catch (cause) {
     if (cause instanceof AccessDeniedError) {
       throw cause;

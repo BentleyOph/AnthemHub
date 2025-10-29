@@ -12,14 +12,20 @@ export default async function ClientLayout({
   children: ReactNode;
 }) {
   const supabase = await getSupabaseServerClient();
-  const { data } = await supabase.auth.getSession();
-  const session = data.session;
+  const { data, error } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (error) {
+    console.error("Failed to retrieve authenticated user for client layout", error);
     redirect("/login");
   }
 
-  const metadataRole = session.user?.app_metadata?.role;
+  const user = data.user;
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const metadataRole = user.app_metadata?.role;
   let role: "ADMIN" | "CLIENT" | null =
     metadataRole === "ADMIN" || metadataRole === "CLIENT"
       ? metadataRole
@@ -30,12 +36,16 @@ export default async function ClientLayout({
     const { data: profile } = await service
       .from("user_profile")
       .select("role")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .maybeSingle<{ role: "ADMIN" | "CLIENT" | null }>();
 
     if (profile?.role === "ADMIN" || profile?.role === "CLIENT") {
       role = profile.role;
     }
+  }
+
+  if (!role) {
+    role = "CLIENT";
   }
 
   if (role !== "CLIENT") {

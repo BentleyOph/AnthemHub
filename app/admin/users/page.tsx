@@ -1,5 +1,4 @@
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth/guards";
 import { revalidatePath } from "next/cache";
 
 interface UserProfile {
@@ -20,20 +19,28 @@ async function getProfiles(): Promise<UserProfile[]> {
 
 async function assertAdmin() {
   const supabase = await getSupabaseServerClient();
-  const { data: sess } = await supabase.auth.getSession();
-  if (!sess.session) throw new Error("No session");
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    throw new Error("Failed to load authenticated user");
+  }
+
+  const user = data.user;
+  if (!user) throw new Error("No session");
 
   // Prefer definitive check against DB profile role
   const admin = getSupabaseServiceRoleClient();
   const { data: me } = await admin
     .from("user_profile")
     .select("role")
-    .eq("id", sess.session.user.id)
+    .eq("id", user.id)
     .maybeSingle();
 
   if (me?.role !== "ADMIN") {
-    // Fallback to metadata-based guard (in case claims are enriched)
-    requireAdmin(sess.session);
+    const metadataRole = user.app_metadata?.role;
+    if (metadataRole !== "ADMIN") {
+      // Fallback to metadata-based guard (in case claims are enriched)
+      throw new Error("Not authorized");
+    }
   }
 }
 
