@@ -210,7 +210,7 @@ async function enrichPendingRequests(
     workflowId: string;
     status: AccessRequestStatus;
     createdAt: string;
-  }>;
+  }>,
 ): Promise<ClientPendingRequest[]> {
   if (requests.length === 0) {
     return [];

@@ -137,6 +137,7 @@ async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
         </CardHeader>
         <CardContent>
           <WorkflowRunForm
+            key={workflow.id}
             workflowId={workflow.id}
             workflowName={workflow.name}
             schema={workflow.inputSchema}

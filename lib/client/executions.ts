@@ -29,6 +29,17 @@ export interface ClientExecutionListParams {
   perPage: number;
 }
 
+export interface ClientExecutionListFilters {
+  workflowId?: string;
+  status?: ClientExecutionStatus[];
+}
+
+export interface ClientExecutionListOptions {
+  params?: ClientExecutionListParams;
+  filters?: ClientExecutionListFilters;
+  supabase?: SupabaseClient;
+}
+
 export interface ClientExecutionListItem {
   id: string;
   workflowId: string;
@@ -81,6 +92,22 @@ function calculateDurationMs(startedAt: string, finishedAt: string | null): numb
   return finished - started;
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeStatusFilter(
+  statuses: ClientExecutionStatus[] | undefined,
+): ClientExecutionStatus[] {
+  if (!statuses) {
+    return [];
+  }
+
+  return statuses.filter((status): status is ClientExecutionStatus =>
+    EXECUTION_STATUSES.includes(status),
+  );
+}
+
 export function parseClientExecutionQuery(
   searchParams: Record<string, string | string[] | undefined>,
 ): ClientExecutionListParams {
@@ -99,13 +126,11 @@ export function parseClientExecutionQuery(
   } satisfies ClientExecutionListParams;
 }
 
-export async function getClientExecutions(options?: {
-  params?: ClientExecutionListParams;
-  supabase?: SupabaseClient;
-}): Promise<ClientExecutionListResult> {
+export async function getClientExecutions(options?: ClientExecutionListOptions): Promise<ClientExecutionListResult> {
   const params =
     options?.params ??
     ({ page: 1, perPage: DEFAULT_CLIENT_EXECUTIONS_PER_PAGE } satisfies ClientExecutionListParams);
+  const filters = options?.filters ?? {};
   const supabase = options?.supabase ?? (await getSupabaseServerClient());
 
   const profile = await getClientProfile({ supabase });
@@ -127,7 +152,9 @@ export async function getClientExecutions(options?: {
   const from = (params.page - 1) * params.perPage;
   const to = from + params.perPage - 1;
 
-  const { data, error, count } = await supabase
+  const statusFilter = normalizeStatusFilter(filters.status);
+
+  let query = supabase
     .from("execution")
     .select(
       `
@@ -144,7 +171,17 @@ export async function getClientExecutions(options?: {
       `,
       { count: "exact" },
     )
-    .eq("client_id", profile.clientId)
+    .eq("client_id", profile.clientId);
+
+  if (isNonEmptyString(filters.workflowId)) {
+    query = query.eq("workflow_id", filters.workflowId);
+  }
+
+  if (statusFilter.length > 0) {
+    query = query.in("status", statusFilter);
+  }
+
+  const { data, error, count } = await query
     .order("started_at", { ascending: false })
     .range(from, to);
 

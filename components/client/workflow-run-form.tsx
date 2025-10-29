@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   IconPlus,
@@ -41,10 +42,51 @@ interface WorkflowRunFormProps {
   workflowName: string;
   schema: JsonSchema | null;
   disabled?: boolean;
-  onSubmit?: (payload: unknown) => Promise<void> | void;
 }
 
 type ErrorMap = Record<string, string[]>;
+
+function extractFieldErrors(details: unknown): ErrorMap {
+  if (!details || typeof details !== "object") {
+    return {};
+  }
+
+  const fieldErrors =
+    (details as { fieldErrors?: Record<string, string[] | undefined> }).fieldErrors;
+
+  if (!fieldErrors) {
+    return {};
+  }
+
+  const mapped: ErrorMap = {};
+
+  for (const [key, messages] of Object.entries(fieldErrors)) {
+    if (!messages || messages.length === 0) continue;
+    const validMessages = messages.filter(
+      (message): message is string => typeof message === "string" && message.length > 0,
+    );
+    if (validMessages.length === 0) continue;
+    mapped[key || ""] = validMessages;
+  }
+
+  return mapped;
+}
+
+function resolveErrorMessage(
+  responseBody: unknown,
+  fallback: string,
+): string {
+  if (
+    responseBody &&
+    typeof responseBody === "object" &&
+    typeof (responseBody as { error?: unknown }).error === "string" &&
+    (responseBody as { error?: unknown }).error
+  ) {
+    return (responseBody as { error: string }).error;
+  }
+
+  return fallback;
+}
 
 function humanizeLabel(key: string): string {
   const spaced = key
@@ -72,27 +114,20 @@ export function WorkflowRunForm({
   workflowName,
   schema,
   disabled = false,
-  onSubmit,
 }: WorkflowRunFormProps) {
+  const router = useRouter();
   const zodSchema = useMemo(() => jsonSchemaToZod(schema), [schema]);
   const defaults = useMemo(() => jsonSchemaDefaultValues(schema), [schema]);
-  const [formData, setFormData] = useState<Record<string, unknown>>(defaults);
+  const [formData, setFormData] = useState<Record<string, unknown>>(() => defaults);
   const [errors, setErrors] = useState<ErrorMap>({});
   const [isSubmitting, startTransition] = useTransition();
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setFormData(defaults);
     setErrors({});
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [defaults]);
-
-  function clearErrors(key: string) {
-    setErrors((prev) => {
-      if (!prev[key]) return prev;
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
-  }
 
   function clearErrorsForPrefix(prefix: string) {
     setErrors((prev) => {
@@ -110,10 +145,89 @@ export function WorkflowRunForm({
     });
   }
 
+  function applyServerErrors(details: unknown) {
+    const mapped = extractFieldErrors(details);
+    if (Object.keys(mapped).length === 0) {
+      return;
+    }
+    setErrors(mapped);
+  }
+
   function updateValue(path: Path, value: unknown) {
     const key = pathToKey(path);
     clearErrorsForPrefix(key);
     setFormData((current) => setDeepValue(current, path, value) as Record<string, unknown>);
+  }
+
+  async function submitExecution(validPayload: unknown) {
+    try {
+      const response = await fetch("/api/executions/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          workflowId,
+          input: validPayload,
+        }),
+      });
+
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        body = null;
+      }
+
+      if (response.ok) {
+        const executionId =
+          body && typeof body === "object" && typeof (body as { executionId?: unknown }).executionId === "string"
+            ? (body as { executionId: string }).executionId
+            : null;
+
+        toast.success(`Started "${workflowName}". Redirecting to progress...`);
+        if (executionId) {
+          router.push(`/executions/${executionId}`);
+        } else {
+          router.push("/executions");
+        }
+        return;
+      }
+
+      if (response.status === 422) {
+        const details = body && typeof body === "object" ? (body as { details?: unknown }).details : undefined;
+        applyServerErrors(details);
+        toast.error("Please fix the highlighted fields.");
+        return;
+      }
+
+      if (response.status === 429) {
+        toast.error(
+          resolveErrorMessage(
+            body,
+            "You have reached the limit for starting this workflow. Please try again soon.",
+          ),
+        );
+        return;
+      }
+
+      if (response.status === 401) {
+        toast.error("Your session has expired. Please sign in again.");
+        return;
+      }
+
+      if (response.status === 403) {
+        toast.error(
+          resolveErrorMessage(body, "You do not have permission to run this workflow."),
+        );
+        return;
+      }
+
+      toast.error(resolveErrorMessage(body, "Failed to start workflow execution."));
+    } catch (error) {
+      console.error("Workflow run submission failed", error);
+      toast.error("Unexpected error starting workflow.");
+    }
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -136,22 +250,7 @@ export function WorkflowRunForm({
       }
 
       setErrors({});
-
-      if (onSubmit) {
-        try {
-          await onSubmit(result.data);
-        } catch (error) {
-          console.error("Workflow run submission failed", error);
-          toast.error("Failed to submit workflow run.");
-          return;
-        }
-      } else {
-        console.info("Workflow payload ready", {
-          workflowId,
-          payload: result.data,
-        });
-        toast.success("Inputs validated. Execution endpoint coming soon.");
-      }
+      await submitExecution(result.data);
     });
   }
 
@@ -174,7 +273,7 @@ export function WorkflowRunForm({
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={disabled || isSubmitting}>
-          {isSubmitting ? "Validating..." : "Validate inputs"}
+          {isSubmitting ? "Starting..." : "Start Generation"}
         </Button>
         {disabled ? (
           <span className="text-muted-foreground text-sm">
@@ -182,7 +281,7 @@ export function WorkflowRunForm({
           </span>
         ) : (
           <span className="text-muted-foreground text-sm">
-            Validation happens locally. Executions will be wired in Phase 6.
+            You will be redirected to live progress once the run starts.
           </span>
         )}
       </div>
@@ -461,7 +560,6 @@ function ArrayField({
             <p className="text-muted-foreground text-sm">No values yet.</p>
           ) : (
             items.map((item, index) => {
-              const itemPath = [...path, index];
               const itemKey = `${fieldKey}.${index}`;
               const itemErrors = errors[itemKey];
               const isNumber = itemType === "number" || itemType === "integer";

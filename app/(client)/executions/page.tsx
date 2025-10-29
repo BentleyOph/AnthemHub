@@ -29,13 +29,13 @@ import {
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 
 type PageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default function ClientExecutionsPage({ searchParams }: PageProps) {
   return (
     <Suspense fallback={<ExecutionsPageSkeleton />}>
-      <ExecutionsContent searchParams={searchParams ?? {}} />
+      <ExecutionsContent searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -43,11 +43,12 @@ export default function ClientExecutionsPage({ searchParams }: PageProps) {
 async function ExecutionsContent({
   searchParams,
 }: {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const resolvedSearchParams = (await searchParams) ?? {};
   let params: ClientExecutionListParams;
   try {
-    params = parseClientExecutionQuery(searchParams);
+    params = parseClientExecutionQuery(resolvedSearchParams);
   } catch (error) {
     console.error("Invalid execution list params", error);
     params = {
@@ -71,10 +72,10 @@ async function ExecutionsContent({
   const { executions, pagination } = data;
   const range = computeRange(pagination.page, pagination.perPage, pagination.total);
   const prevHref = pagination.prevPage
-    ? buildPageHref(pagination.prevPage, pagination.perPage, searchParams)
+    ? buildPageHref(pagination.prevPage, pagination.perPage, resolvedSearchParams)
     : null;
   const nextHref = pagination.nextPage
-    ? buildPageHref(pagination.nextPage, pagination.perPage, searchParams)
+    ? buildPageHref(pagination.nextPage, pagination.perPage, resolvedSearchParams)
     : null;
 
   return (
@@ -114,7 +115,7 @@ async function ExecutionsContent({
             <span>
               {pagination.total === 0
                 ? "No executions yet."
-                : `Showing ${range.from}–${range.to} of ${pagination.total} execution${pagination.total === 1 ? "" : "s"}.`}
+                : `Showing ${range.from}-${range.to} of ${pagination.total} execution${pagination.total === 1 ? "" : "s"}.`}
             </span>
             <div className="flex items-center gap-2">
               <Button asChild size="sm" variant="outline" disabled={!prevHref}>
