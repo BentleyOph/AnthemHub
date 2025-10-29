@@ -41,15 +41,17 @@ const STATUS_META: Record<
 };
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default function ClientExecutionDetailPage({ params }: PageProps) {
+export default async function ClientExecutionDetailPage({ params }: PageProps) {
+  const { id } = await params;
+
   return (
     <Suspense fallback={<ExecutionDetailSkeleton />}>
-      <ExecutionDetailContent executionId={params.id} />
+      <ExecutionDetailContent executionId={id} />
     </Suspense>
   );
 }

@@ -32,16 +32,18 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default function WorkflowExecutionHistoryPage({ params, searchParams }: PageProps) {
+export default async function WorkflowExecutionHistoryPage({ params, searchParams }: PageProps) {
+  const { id } = await params;
+
   return (
     <Suspense fallback={<HistorySkeleton />}>
-      <HistoryContent workflowId={params.id} searchParams={searchParams} />
+      <HistoryContent workflowId={id} searchParams={searchParams} />
     </Suspense>
   );
 }

@@ -8,7 +8,7 @@ import {
 } from "@/lib/admin/executions/data";
 
 type PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 const PATH_SCHEMA = z.object({ id: z.string().uuid() });
@@ -16,7 +16,8 @@ const DEFAULT_EVENT_PAGE_SIZE = 50;
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 
 export default async function AdminExecutionDetailPage({ params }: PageProps) {
-  const parsedParams = PATH_SCHEMA.safeParse(params);
+  const resolvedParams = await params;
+  const parsedParams = PATH_SCHEMA.safeParse(resolvedParams);
 
   if (!parsedParams.success) {
     notFound();
