@@ -127,6 +127,63 @@ Acceptance
 - [ ] Access mapping replaces full set atomically
 - [ ] Client details show aggregates (counts) if implemented
 
+Feature Plan — matches requirements
+
+Scope
+- Onboarding: create a new client with `Name`, `Email`, `Company`.
+- Access Control: assign specific workflows to each client via checklist/multi-select.
+- Client-Specific View: per-client page with usage stats, execution history, and current access list.
+
+Data model
+- Tables: `client`, `workflow`, `client_workflow_access`, `execution`.
+- Optional views/RPCs for aggregates:
+  - `get_client_overview_kpis(client_id)` → `{ executions_7d, success_rate_7d, last_run_at, assigned_workflows }`.
+  - `get_client_recent_executions(client_id, limit)` or query `execution` joined with `workflow`.
+
+API design
+- `POST /api/clients` — create client; body `{ name, email, company }`.
+- `GET /api/clients` — list with `search`, `page`, `per_page`; include `assigned_workflows_count`.
+- `GET /api/clients/:id` — detail + aggregates; include assigned workflow ids.
+- `POST /api/clients/:id/access` — replace full set using `rpc:set_client_access({ p_client, p_workflows })`.
+- Optional: `POST /api/clients/:id/invite-user` — send invite, pre-link `user_profile.client_id` after acceptance.
+
+Tasks — UI: List page (`app/admin/clients`)
+- [ ] Guard to ADMIN only (middleware + server checks).
+- [ ] Table columns: Client Name, Company, Primary Email, Workflows (#), Created, Actions.
+- [ ] Search input (name/company/email) + pagination.
+- [ ] CTA “New Client” → modal/dialog with fields `Name`, `Email`, `Company`; Zod validation; create via API; navigate to details on success.
+- [ ] Row action “View” to `/admin/clients/[id]`.
+
+Tasks — UI: Details page (`app/admin/clients/[id]`)
+- [ ] Header card: name, company, email, created date.
+- [ ] KPIs: Executions (7d), Success rate (7d), Last run at, Assigned workflows count.
+- [ ] Access assignment panel:
+  - [ ] List all published workflows with checkboxes or multi-select; pre-select currently assigned.
+  - [ ] “Save access” replaces set via `POST /api/clients/:id/access`; disable while saving; toast on success/failure.
+  - [ ] Show chips/list of assigned workflows; include quick unassign action.
+- [ ] Execution history panel:
+  - [ ] Table (latest 20): Status, Workflow, Started, Duration, Result/Error link.
+  - [ ] Link to Admin Executions page pre-filtered by this client.
+- [ ] Optional: Contacts/users panel listing `user_profile` rows tied to this client; manage separately.
+
+Tasks — API & server
+- [ ] Implement list with search: `ilike` on `name`, `company`, `email`; order by `created_at DESC`.
+- [ ] Include `assigned_workflows_count` via join/subquery.
+- [ ] Implement details handler: fetch client row, assigned workflow ids, and KPI aggregates.
+- [ ] Implement `set_client_access` RPC call; ensure transactional replace of mappings.
+- [ ] Cache strategy: server components fetch with small revalidation window (e.g., 30–60s) or tag-based invalidation on access changes.
+
+Permissions & RLS
+- [ ] Admin-only for all `/api/clients*` and `/admin/clients*` routes.
+- [ ] Use service role for `set_client_access` if RLS blocks admin through user-scoped client; otherwise ensure admin policies allow it.
+- [ ] Never expose service role to the browser; all mutations occur on the server.
+
+Acceptance
+- [ ] Onboarding: creating a client inserts row and appears at top of list; redirect lands on details.
+- [ ] Access control: saving updates mapping atomically; UI reflects new assignment on refresh; client users can now run only assigned workflows.
+- [ ] Client-specific view: KPIs and recent executions reflect only that client; links navigate correctly to filtered executions.
+- [ ] Non-admins redirected from UI and receive 403 on API.
+
 ### Phase 3A — Admin: Overview Dashboard (/admin/overview)
 Deliverables
 - Admin Overview dashboard matching the provided wireframe.
