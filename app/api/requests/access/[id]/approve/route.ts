@@ -1,0 +1,53 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+
+import { AccessDeniedError } from "@/lib/auth/guards";
+import { requireAdminSession } from "@/lib/auth/require-admin";
+import {
+  AccessRequestActionError,
+  approveAccessRequest,
+} from "@/lib/admin/access-requests/data";
+
+const pathParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export async function POST(_request: NextRequest, context: { params: { id: string } }) {
+  let adminUser;
+  try {
+    adminUser = await requireAdminSession();
+  } catch (error) {
+    if (error instanceof AccessDeniedError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    console.error("Failed to authenticate request", error);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const parsedParams = pathParamsSchema.safeParse(context.params);
+  if (!parsedParams.success) {
+    return NextResponse.json({ error: "Invalid access request id." }, { status: 400 });
+  }
+
+  const adminUserId = adminUser.id;
+  const { id } = parsedParams.data;
+
+  try {
+    await approveAccessRequest(id, adminUserId);
+    revalidatePath("/admin/access-requests");
+    revalidatePath("/admin/overview");
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof AccessRequestActionError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    console.error("Failed to approve access request", error);
+    return NextResponse.json(
+      { error: "Failed to approve access request." },
+      { status: 500 },
+    );
+  }
+}
