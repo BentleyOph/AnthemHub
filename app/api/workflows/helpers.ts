@@ -1,5 +1,3 @@
-"use server";
-
 import type { NextRequest } from "next/server";
 import { ZodError } from "zod";
 
@@ -55,13 +53,20 @@ export async function extractWorkflowPayload(
   }
 
   const typed = payload as Record<string, unknown>;
+  const inputSchema: WorkflowUpsertInput["inputSchema"] =
+    typeof typed.inputSchema === "string"
+      ? typed.inputSchema
+      : typeof typed.inputSchema === "object" && typed.inputSchema !== null
+        ? (typed.inputSchema as Record<string, unknown>)
+        : "";
+
   return {
     name: String(typed.name ?? ""),
     publicDesc: String(typed.publicDesc ?? ""),
     internalNotes:
       typeof typed.internalNotes === "string" ? typed.internalNotes : undefined,
     n8nWebhookUrl: String(typed.n8nWebhookUrl ?? ""),
-    inputSchema: typed.inputSchema ?? "",
+    inputSchema,
     isPublished: Boolean(typed.isPublished),
     removeIcon: Boolean(typed.removeIcon),
   };
