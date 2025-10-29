@@ -477,8 +477,8 @@ Acceptance
 
 Deliverables
 
-- A simple, RLS-safe history page listing only the signed-in client’s past executions.
-- Clear status indicators and a Results action: Download when a file was produced; otherwise View Details.
+- [x] A simple, RLS-safe history page listing only the signed-in client’s past executions.
+- [x] Clear status indicators and a Results action: Download when a file was produced; otherwise View Details.
 
 Layout (desktop)
 
@@ -530,11 +530,11 @@ Performance
 
 Acceptance
 
-- Page shows only the signed-in client’s executions with correct workflow names and statuses.
-- “Download” appears only when a `result_file_url` exists and opens a valid file; otherwise “View Details” navigates to the execution details page.
-- Pagination works and preserves filters/sort via URL params.
-- Timestamps respect configured timezone; statuses use friendly labels and badges.
-- No data is visible across clients (validated via manual RLS checks).
+- [x] Page shows only the signed-in client’s executions with correct workflow names and statuses.
+- [x] “Download” appears only when a `result_file_url` exists and opens a valid file; otherwise “View Details” navigates to the execution details page.
+- [x] Pagination works and preserves filters/sort via URL params.
+- [x] Timestamps respect configured timezone; statuses use friendly labels and badges.
+- [x] No data is visible across clients (validated via manual RLS checks).
 
 ## Phase 6 — Execution Lifecycle
 
@@ -728,7 +728,7 @@ Client
 - [ ] `app/(client)/catalog`
 - [ ] `app/(client)/workflows` (overview dashboard)
 - [ ] `app/(client)/workflows/[id]/run`
-- [ ] `app/(client)/executions`
+- [x] `app/(client)/executions`
 - [ ] `app/(client)/history`
 - [ ] `app/executions/[id]` (details)
 
