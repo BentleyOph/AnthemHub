@@ -245,6 +245,102 @@ Acceptance
 - [ ] Chart toggles (Day/Week/Month) switch datasets and totals align with table counts when windows overlap
 - [ ] Admin-only access (middleware + server guards)
 
+### Phase 3B — Admin: Executions (/admin/executions)
+Deliverables
+- Admin executions list with robust server filtering and pagination.
+- Interactive table with filters (workflow, status, client, date range, search) and sortable columns.
+- Execution details view with input/output payloads and full event timeline (live updates for in-flight runs).
+
+API design (read-only)
+- `GET /api/executions` (admin sees all) with query params:
+  - `page` (default 1), `per_page` (default 20, max 100)
+  - `workflow_id` (uuid), `status` (enum), `client_id` (uuid)
+  - `from` (ISO), `to` (ISO) filter by `started_at`
+  - `q` (search by execution id prefix or n8n_run_id)
+  - `sort` in {`started_at.desc` (default), `started_at.asc`, `duration.desc`, `duration.asc`}
+- `GET /api/executions/:id` returns execution + workflow/client naming + payloads.
+- `GET /api/executions/:id/events` returns paged event list (or fetch via details endpoint embed).
+- Reuse `GET /api/executions/:id/stream` (Phase 9) for live timeline.
+
+Tasks — Backend
+- [ ] Validate admin role in handlers; never expose service role to browser.
+- [ ] Implement query builder with safe defaults: time window capped (e.g., 90 days) if no filters.
+- [ ] Offset pagination v1 (`page`, `per_page`); consider keyset later for large tables.
+- [ ] Enforce max `per_page=100`; return `{ data, page, per_page, total, next_page }`.
+- [ ] Filters: `workflow_id`, `status`, `client_id`, `started_at BETWEEN from/to`, `q` on `id` prefix or `n8n_run_id`.
+- [ ] Sorting: default `started_at DESC`; allow select sort whitelist only.
+- [ ] Performance: use existing indices (`idx_execution_client_workflow_status`, `idx_execution_started_at`).
+- [ ] Shape rows with joins for names: `workflow.name`, `client.name`; avoid N+1.
+
+Tasks — UI: List page (`app/admin/executions`)
+- [ ] Guard route to ADMIN; server-fetch initial page with current query params.
+- [ ] Filters: multi-select `workflow`, multi-select `status`, multi-select `client`, date range, search box.
+- [ ] Data table columns: ID (short), Status badge, Workflow, Client, Started, Duration, Source, Result (link if present), Error (tooltip).
+- [ ] Sort controls on Started/Duration; pagination controls (page size selector).
+- [ ] URL state: reflect filters/sort/page in querystring; deep-linkable and shareable.
+- [ ] Empty, loading, and error states; retain filters when reloading.
+- [ ] Optional: CSV export of current filtered view (server-side, capped rows).
+- [ ] Row click → navigate to `app/admin/executions/[id]`.
+
+Tasks — UI: Details page (`app/admin/executions/[id]`)
+- [ ] Header: status, workflow, client, started/finished, duration, source, n8n run id.
+- [ ] Tabs: Timeline, Input, Output, Metadata.
+- [ ] Timeline: paged list of `execution_event` entries; if status in `PENDING/PROCESSING` subscribe to SSE stream and append live events.
+- [ ] Input/Output: pretty-printed JSON with copy/download; protect large payloads with collapse.
+- [ ] Metadata: IDs, attempts, error message, result file link (signed URL), environment.
+- [ ] Linkouts: Workflow details, Client details, open result file in new tab if available.
+
+QA & Acceptance
+- [ ] Admin can filter by workflow, status, client, and date range; combinations return correct counts.
+- [ ] Pagination works with totals; no page loads exceed limits; sort stable under filters.
+- [ ] Query state preserved in URL; refreshing keeps the same view.
+- [ ] Details view loads payloads and events; live updates appear while processing.
+- [ ] Non-admins receive 403 on API and redirects from UI.
+- [ ] P95 list query < 200ms for 50k-row table under indexed filters (local benchmark).
+
+### Phase 3C — Admin: Access Requests (/admin/access-requests)
+Deliverables
+- Simple admin list of access requests with actions to approve or reject.
+- Columns: Date requested, Requester name/email, Client name, Workflow name, Actions (Approve, Reject).
+
+Data model
+- Source: `access_request` joined to `user_profile` (requester), `client`, and `workflow`.
+- Show `created_at` (UTC → `Africa/Nairobi`), `status` (focus on Pending by default).
+
+API design
+- `GET /api/requests/access` — list with filters: `status=pending|approved|rejected`, `client_id`, `workflow_id`, `page`, `per_page`.
+- `POST /api/requests/access/:id/approve` — approve and grant access.
+- `POST /api/requests/access/:id/reject` — reject with optional body `{ reason?: string }`.
+
+Tasks — UI: List page (`app/admin/access-requests`)
+- [ ] Guard route to ADMIN only (server component + middleware).
+- [ ] Table with columns: Date, Requester (name + email), Client, Workflow, Actions.
+- [ ] Status tabs or filter chips: Pending (default), Approved, Rejected.
+- [ ] Approve/Reject buttons per row with confirm dialog; disable while processing.
+- [ ] Empty, loading, and error states; skeleton on first load.
+- [ ] After action: optimistic update or revalidate via tag/path; toast on success/failure.
+- [ ] Optional: search input (requester/client/workflow) and date range filter.
+
+Tasks — API routes
+- [ ] Implement list handler with pagination and basic filters; order by `created_at DESC`.
+- [ ] Approve handler: verify ADMIN; within a transaction:
+  - [ ] Upsert into `client_workflow_access (client_id, workflow_id)` if not present.
+  - [ ] Update `access_request.status = 'APPROVED'`, set `approved_by`, `approved_at`.
+- [ ] Reject handler: verify ADMIN; update `status = 'REJECTED'`, set `rejected_by`, `rejected_at`, `reason` (if provided).
+- [ ] Idempotency: if already final (APPROVED/REJECTED), return 200 with current state.
+- [ ] Emit revalidation tag/event so UI refreshes counts (e.g., Overview KPIs).
+
+Permissions & RLS
+- [ ] Run admin mutations server-side with service role or ensure RLS policies allow ADMIN to update `access_request` and manage `client_workflow_access`.
+- [ ] All reads for admin list can occur server-side; never expose service role to the browser.
+
+Acceptance
+- [ ] Pending requests load with correct requester/client/workflow names and dates.
+- [ ] Approve creates `client_workflow_access` if missing and marks request APPROVED.
+- [ ] Reject marks request REJECTED without granting access.
+- [ ] Only admins can view or act on requests; non-admins are redirected.
+- [ ] Overview KPI “Pending access requests” reflects updated counts after actions.
+
 ## Phase 5 — Catalog & Client UX
 Deliverables
 - Public catalog of published workflows; personal view of assigned workflows; run form.
@@ -402,6 +498,8 @@ Server-to-server
 ## UI Routes (App Router)
 Admin
 - [ ] `app/admin/overview`
+- [ ] `app/admin/executions`
+- [ ] `app/admin/executions/[id]`
 - [ ] `app/admin/workflows` (list/create/edit)
 - [ ] `app/admin/clients` (list/details/access)
 
