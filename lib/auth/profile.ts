@@ -40,7 +40,7 @@ export async function ensureUserProfile() {
     email: user.email,
     role: "CLIENT" as const,
     client_id: null as string | null,
-    full_name:
+    name:
       (user.user_metadata as Record<string, unknown> | undefined)?.full_name ||
       user.email ||
       null,
