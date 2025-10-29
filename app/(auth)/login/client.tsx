@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 
 export default function LoginClient() {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -25,15 +25,14 @@ export default function LoginClient() {
   }, [search]);
 
   const redirectAfterLogin = useCallback(
-    (session: Session | null | undefined) => {
+    (user: User | null | undefined) => {
       const baseDestination = redirectTo || "/";
-      if (!session) {
-        router.replace(baseDestination);
+      if (!user) {
         return;
       }
 
       const metadata =
-        (session.user?.app_metadata as Record<string, unknown> | undefined) ??
+        (user.app_metadata as Record<string, unknown> | undefined) ??
         {};
       const role = typeof metadata.role === "string" ? metadata.role : null;
 
@@ -53,9 +52,9 @@ export default function LoginClient() {
 
     const supabase = getSupabaseBrowserClient();
 
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        redirectAfterLogin(data.session);
+    void supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        redirectAfterLogin(data.user);
       }
     });
 
@@ -79,9 +78,13 @@ export default function LoginClient() {
         return;
       }
 
-      const session =
-        data.session || (await supabase.auth.getSession()).data.session || null;
-      redirectAfterLogin(session);
+      const user =
+        data.user || (await supabase.auth.getUser()).data.user || null;
+      if (!user) {
+        setMessage("Signed in but could not load your account. Please try again.");
+        return;
+      }
+      redirectAfterLogin(user);
     };
 
     form?.addEventListener("submit", onSubmit);
@@ -107,7 +110,9 @@ export default function LoginClient() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}${redirectTo}` : undefined,
+          // We explicitly tell Supabase where to redirect the user AFTER a successful login.
+          // This will be our new callback route.
+          redirectTo: `${window.location.origin}/callback?next=${encodeURIComponent(redirectTo)}`,
         },
       });
       if (error) setMessage(error.message ?? "OAuth sign-in failed.");
