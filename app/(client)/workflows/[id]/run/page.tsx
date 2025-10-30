@@ -52,14 +52,15 @@ async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
   const { workflow, hasAccess, request, assignedAt, profile, canRequest } = data;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <ClientNav
         clientName={profile.clientName}
         clientCompany={profile.clientCompany}
+        userName={profile.userName}
         activeHref="/workflows"
       />
 
-      <Button variant="ghost" size="sm" asChild>
+      <Button variant="ghost" size="sm" asChild className="w-fit">
         <Link href="/workflows">
           <IconArrowLeft className="mr-2 size-4" /> Back to workflows
         </Link>

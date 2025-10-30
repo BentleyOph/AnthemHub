@@ -36,7 +36,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 
@@ -52,10 +51,11 @@ async function ClientOverviewContent() {
   const data = await getClientOverviewData();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <ClientNav
         clientName={data.clientName}
         clientCompany={data.clientCompany}
+        userName={data.userName}
         activeHref="/overview"
       />
 

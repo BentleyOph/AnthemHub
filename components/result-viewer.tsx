@@ -104,18 +104,18 @@ export function ResultViewer({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>{title}</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle className="text-lg">{title}</CardTitle>
             <CardDescription>
               {hasTextContent
                 ? "Formatted output content"
                 : "Raw JSON payload"}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {safeString !== null && (
               <Button
                 size="sm"
@@ -142,7 +142,7 @@ export function ResultViewer({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {/* Output content display */}
         {output ? (
           <div className="rounded-md border bg-muted">

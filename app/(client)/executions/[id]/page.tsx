@@ -66,87 +66,90 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
   const isLive = LIVE_STATUSES.has(execution.status);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <ClientNav
         clientName={profile.clientName}
         clientCompany={profile.clientCompany}
+        userName={profile.userName}
         activeHref="/executions"
       />
 
-      <Button variant="ghost" size="sm" asChild>
+      <Button variant="ghost" size="sm" asChild className="w-fit">
         <Link href="/executions">
           <IconArrowLeft className="mr-2 size-4" />
           Back to executions
         </Link>
       </Button>
 
-      <Card>
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-3">
-            <CardTitle className="text-2xl font-semibold leading-tight">
-              {execution.workflowName}
-            </CardTitle>
-            <CardDescription className="max-w-3xl leading-relaxed">
-              {execution.workflowDescription ?? "No public description provided for this workflow yet."}
-            </CardDescription>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>Execution ID:</span>
-              <code className="rounded bg-muted px-2 py-1 font-mono text-[11px]">
-                {execution.id}
-              </code>
-              <span className="hidden md:inline">•</span>
-              <span>Workflow ID:</span>
-              <code className="rounded bg-muted px-2 py-1 font-mono text-[11px]">
-                {execution.workflowId}
-              </code>
+      <Card className="overflow-hidden">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex-1 space-y-3">
+              <CardTitle className="text-2xl font-semibold leading-tight">
+                {execution.workflowName}
+              </CardTitle>
+              <CardDescription className="max-w-3xl leading-relaxed">
+                {execution.workflowDescription ?? "No public description provided for this workflow yet."}
+              </CardDescription>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>Execution ID:</span>
+                <code className="rounded bg-muted px-2 py-1 font-mono text-[11px]">
+                  {execution.id}
+                </code>
+                <span className="hidden md:inline">•</span>
+                <span>Workflow ID:</span>
+                <code className="rounded bg-muted px-2 py-1 font-mono text-[11px]">
+                  {execution.workflowId}
+                </code>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ClientExecutionStatusBadge
-              executionId={execution.id}
-              initialStatus={execution.status}
-              isLive={isLive}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                asChild
-              >
-                <Link href={`/workflows/${execution.workflowId}/run`}>
-                  <IconPlayerPlay className="mr-2 size-4" />
-                  Run again
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <Link href={`/workflows/${execution.workflowId}/executions`}>
-                  <IconHistory className="mr-2 size-4" />
-                  Workflow history
-                </Link>
-              </Button>
+            <div className="flex flex-col items-start gap-3 lg:items-end">
+              <ClientExecutionStatusBadge
+                executionId={execution.id}
+                initialStatus={execution.status}
+                isLive={isLive}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  asChild
+                >
+                  <Link href={`/workflows/${execution.workflowId}/run`}>
+                    <IconPlayerPlay className="mr-2 size-4" />
+                    Run again
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <Link href={`/workflows/${execution.workflowId}/executions`}>
+                    <IconHistory className="mr-2 size-4" />
+                    Workflow history
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <dl className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
-            <div className="space-y-1">
-              <dt className="font-medium text-foreground">Started</dt>
-              <dd>{formatDateTime(execution.startedAt, TIMEZONE)}</dd>
+        <CardContent className="pt-6">
+          <dl className="grid gap-6 text-sm sm:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2">
+              <dt className="font-semibold text-foreground">Started</dt>
+              <dd className="text-muted-foreground">{formatDateTime(execution.startedAt, TIMEZONE)}</dd>
             </div>
-            <div className="space-y-1">
-              <dt className="font-medium text-foreground">Finished</dt>
-              <dd>{formatDateTime(execution.finishedAt, TIMEZONE)}</dd>
+            <div className="space-y-2">
+              <dt className="font-semibold text-foreground">Finished</dt>
+              <dd className="text-muted-foreground">{formatDateTime(execution.finishedAt, TIMEZONE)}</dd>
             </div>
-            <div className="space-y-1">
-              <dt className="font-medium text-foreground">Duration</dt>
-              <dd>{formatDuration(execution.durationMs)}</dd>
+            <div className="space-y-2">
+              <dt className="font-semibold text-foreground">Duration</dt>
+              <dd className="text-muted-foreground">{formatDuration(execution.durationMs)}</dd>
             </div>
-            <div className="space-y-1">
-              <dt className="font-medium text-foreground">Result</dt>
+            <div className="space-y-2">
+              <dt className="font-semibold text-foreground">Result</dt>
               <dd>
                 {execution.resultFileUrl ? (
                   <Button asChild size="sm" variant="outline">
@@ -164,7 +167,7 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
         <ClientExecutionTimeline
           executionId={execution.id}
           initialEvents={events}

@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -33,10 +32,11 @@ async function CatalogContent() {
   const canRequest = Boolean(data.profile.clientId);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <ClientNav
         clientName={data.profile.clientName}
         clientCompany={data.profile.clientCompany}
+        userName={data.profile.userName}
         activeHref="/catalog"
       />
 

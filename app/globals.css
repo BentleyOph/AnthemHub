@@ -117,6 +117,22 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+  
+  /* Premium spacing utilities */
+  .container-premium {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Enhanced card styling */
+  .card-premium {
+    @apply rounded-xl border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md;
+  }
+  
+  /* Premium button focus states */
+  button:focus-visible,
+  a:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
   }
 }

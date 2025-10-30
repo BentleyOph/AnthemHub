@@ -40,10 +40,11 @@ async function WorkflowsContent() {
   const data = await getClientWorkflowsData();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <ClientNav
         clientName={data.profile.clientName}
         clientCompany={data.profile.clientCompany}
+        userName={data.profile.userName}
         activeHref="/workflows"
       />
 

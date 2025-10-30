@@ -174,72 +174,74 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
   );
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-col gap-4 rounded-lg border bg-card p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <Badge variant={statusBadgeVariant(execution.status)} className="gap-1 text-base">
-                {execution.status === "ERROR" && <IconAlertTriangle className="size-4" />}
-                {execution.status === "PROCESSING" && <IconLoader className="size-4 animate-spin" />}
-                {execution.status === "PENDING" && <IconPlayerPlay className="size-4" />}
-                {execution.status}
-              </Badge>
-              {execution.n8nRunId && (
-                <span className="font-mono text-xs text-muted-foreground">
-                  n8n run: {execution.n8nRunId}
-                </span>
+    <div className="container mx-auto max-w-7xl space-y-6 px-4 md:px-6">
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex-1 space-y-3">
+              <div className="flex items-center gap-3">
+                <Badge variant={statusBadgeVariant(execution.status)} className="gap-1 text-base">
+                  {execution.status === "ERROR" && <IconAlertTriangle className="size-4" />}
+                  {execution.status === "PROCESSING" && <IconLoader className="size-4 animate-spin" />}
+                  {execution.status === "PENDING" && <IconPlayerPlay className="size-4" />}
+                  {execution.status}
+                </Badge>
+                {execution.n8nRunId && (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    n8n run: {execution.n8nRunId}
+                  </span>
+                )}
+              </div>
+              <CardTitle className="text-2xl font-semibold">Execution {execution.id}</CardTitle>
+              <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+                <div>
+                  <span className="font-semibold text-foreground">Workflow:</span> {execution.workflowName}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Client:</span> {execution.clientName}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Started:</span> {formatDateTime(execution.startedAt, timezone)}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Finished:</span> {formatDateTime(execution.finishedAt, timezone)}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Duration:</span> {formatDuration(execution.durationMs)}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Source:</span> {execution.source ?? "—"}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start gap-3 lg:items-end">
+              {execution.resultFileUrl && (
+                <Button asChild variant="secondary" size="sm">
+                  <a href={execution.resultFileUrl} target="_blank" rel="noreferrer">
+                    <IconFileExport className="mr-2 size-4" />
+                    Download result
+                  </a>
+                </Button>
+              )}
+              {execution.errorMessage && (
+                <Card className="border-destructive/40 bg-destructive/10">
+                  <CardHeader className="py-2 pb-0">
+                    <CardTitle className="flex items-center gap-2 text-sm font-medium text-destructive">
+                      <IconAlertTriangle className="size-4" /> Error message
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="py-2 text-destructive">
+                    <pre className="whitespace-pre-wrap text-xs leading-relaxed">
+                      {execution.errorMessage}
+                    </pre>
+                  </CardContent>
+                </Card>
               )}
             </div>
-            <h1 className="text-2xl font-semibold">Execution {execution.id}</h1>
-            <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
-              <div>
-                <span className="font-semibold text-foreground">Workflow:</span> {execution.workflowName}
-              </div>
-              <div>
-                <span className="font-semibold text-foreground">Client:</span> {execution.clientName}
-              </div>
-              <div>
-                <span className="font-semibold text-foreground">Started:</span> {formatDateTime(execution.startedAt, timezone)}
-              </div>
-              <div>
-                <span className="font-semibold text-foreground">Finished:</span> {formatDateTime(execution.finishedAt, timezone)}
-              </div>
-              <div>
-                <span className="font-semibold text-foreground">Duration:</span> {formatDuration(execution.durationMs)}
-              </div>
-              <div>
-                <span className="font-semibold text-foreground">Source:</span> {execution.source ?? "—"}
-              </div>
-            </div>
           </div>
-
-          <div className="flex flex-col gap-2 text-sm">
-            {execution.resultFileUrl && (
-              <Button asChild variant="secondary">
-                <a href={execution.resultFileUrl} target="_blank" rel="noreferrer">
-                  <IconFileExport className="mr-2 size-4" />
-                  Download result
-                </a>
-              </Button>
-            )}
-            {execution.errorMessage && (
-              <Card className="border-destructive/40 bg-destructive/10">
-                <CardHeader className="py-2 pb-0">
-                  <CardTitle className="flex items-center gap-2 text-sm font-medium text-destructive">
-                    <IconAlertTriangle className="size-4" /> Error message
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="py-2 text-destructive">
-                  <pre className="whitespace-pre-wrap text-xs leading-relaxed">
-                    {execution.errorMessage}
-                  </pre>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </section>
+        </CardHeader>
+      </Card>
 
       <Tabs defaultValue="timeline" className="space-y-4">
         <TabsList>
