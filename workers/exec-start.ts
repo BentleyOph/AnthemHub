@@ -11,6 +11,12 @@ async function handleExecution(job: Job<ExecutionJob>) {
     `Processing execution ${job.data.executionId} for workflow ${job.data.workflowId}`,
     { jobId: job.id },
   );
+
+  console.debug("Execution job payload", {
+    callbackUrl: job.data.callbackUrl,
+    clientId: job.data.clientId,
+    startedBy: job.data.startedByUserId,
+  });
 }
 
 export function createExecutionWorker(): Worker<ExecutionJob> {

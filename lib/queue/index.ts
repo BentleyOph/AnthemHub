@@ -1,13 +1,14 @@
 import { Queue } from "bullmq";
 import type { ConnectionOptions, QueueOptions } from "bullmq";
 
-export const EXECUTION_QUEUE_NAME = "execution:start";
+export const EXECUTION_QUEUE_NAME = "execution-start";
 
 export interface ExecutionJob {
   executionId: string;
   workflowId: string;
   clientId: string;
-  payload: Record<string, unknown>;
+  input: Record<string, unknown>;
+  callbackUrl: string;
   startedByUserId: string;
 }
 
@@ -52,4 +53,19 @@ export function createExecutionQueue(
     ...options,
     connection,
   });
+}
+
+let executionQueueInstance: Queue<ExecutionJob> | null = null;
+
+export function getExecutionQueue(): Queue<ExecutionJob> {
+  if (!executionQueueInstance) {
+    executionQueueInstance = createExecutionQueue({
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    });
+  }
+
+  return executionQueueInstance;
 }

@@ -544,12 +544,12 @@ Deliverables
 
 Tasks
 
-- [ ] API: `POST /api/executions/start`
-  - [ ] Verify access via `client_workflow_access`
-  - [ ] Zod-validate input against workflow.schema
-  - [ ] Rate limit using Redis tokens per `client_id` and `workflow_id` (`RATE_LIMIT_EXEC_START_PER_MIN`)
-  - [ ] Insert `execution(status=PROCESSING)` with input
-  - [ ] Enqueue BullMQ job `exec:start` with correlation data and callback URL
+- [x] API: `POST /api/executions/start`
+  - [x] Verify access via `client_workflow_access`
+  - [x] Zod-validate input against workflow.schema
+  - [x] Rate limit using Redis tokens per `client_id` and `workflow_id` (`RATE_LIMIT_EXEC_START_PER_MIN`)
+  - [x] Insert `execution(status=PROCESSING)` with input
+  - [x] Enqueue BullMQ job `exec:start` with correlation data and callback URL
 - [ ] API: `GET /api/executions/:id` (respect RLS)
 - [ ] API: `GET /api/executions` (admin filters)
 - [ ] UI: `app/(client)/executions` and `app/(client)/history` execution details page with stream panel
