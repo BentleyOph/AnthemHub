@@ -10,14 +10,14 @@ import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 const supabase = getSupabaseServiceRoleClient();
 
-const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 120_000;
 
 async function handleExecution(job: Job<ExecutionJob>) {
   const { executionId, workflowId, clientId, input, callbackUrl } = job.data;
 
   console.info(
     `Processing execution ${executionId} for workflow ${workflowId}`,
-    { jobId: job.id },
+    { jobId: job.id, attemptsMade: job.attemptsMade, attemptsAllowed: job.opts.attempts },
   );
 
   const { data: workflow, error: workflowError } = await supabase
@@ -39,8 +39,15 @@ async function handleExecution(job: Job<ExecutionJob>) {
     throw new Error("Workflow is missing n8n webhook URL");
   }
 
+  console.info("Calling n8n webhook", { 
+    url: workflow.n8n_webhook_url,
+    executionId,
+    timeoutMs: REQUEST_TIMEOUT_MS 
+  });
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const startTime = Date.now();
 
   try {
     const response = await fetch(workflow.n8n_webhook_url, {
@@ -58,6 +65,13 @@ async function handleExecution(job: Job<ExecutionJob>) {
       signal: controller.signal,
     });
 
+    const duration = Date.now() - startTime;
+    console.info("n8n webhook responded", {
+      executionId,
+      status: response.status,
+      durationMs: duration,
+    });
+
     if (!response.ok) {
       const text = await safeReadResponseText(response);
       throw new Error(
@@ -73,6 +87,14 @@ async function handleExecution(job: Job<ExecutionJob>) {
       jobId: job.id,
     });
   } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error("n8n webhook call failed", {
+      executionId,
+      durationMs: duration,
+      error: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : 'Unknown',
+    });
+    
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Timed out waiting for n8n webhook response");
     }

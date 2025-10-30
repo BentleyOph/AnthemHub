@@ -72,8 +72,14 @@ export function getExecutionQueue(): Queue<ExecutionJob> {
           type: "exponential",
           delay: 1000,
         },
-        removeOnComplete: true,
-        removeOnFail: false,
+        removeOnComplete: {
+          age: 3600, // Keep completed jobs for 1 hour
+          count: 100, // Keep max 100 completed jobs
+        },
+        removeOnFail: {
+          age: 86400, // Keep failed jobs for 24 hours
+          count: 500, // Keep max 500 failed jobs
+        },
       },
     });
   }

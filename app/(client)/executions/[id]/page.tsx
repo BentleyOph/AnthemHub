@@ -10,6 +10,7 @@ import {
 } from "@tabler/icons-react";
 
 import { ClientNav } from "@/components/client/client-nav";
+import { ClientExecutionTimeline } from "@/components/client/execution-timeline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,36 +172,12 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div>
-              <CardTitle>Live progress</CardTitle>
-              <CardDescription>
-                Events emitted by the workflow while it runs. Refresh the page to see the latest updates.
-              </CardDescription>
-            </div>
-            {isLive ? <Badge variant="outline">In progress</Badge> : null}
-          </CardHeader>
-          <CardContent>
-            {events.length > 0 ? (
-              <ol className="space-y-4">
-                {events.map((event) => (
-                  <li key={event.id} className="space-y-1 rounded-md border p-3">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{formatDateTime(event.timestamp, TIMEZONE)}</span>
-                      <span className="font-mono uppercase">{event.stage}</span>
-                    </div>
-                    {event.message ? (
-                      <p className="text-sm text-foreground">{event.message}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <EmptyTimeline isLive={isLive} />
-            )}
-          </CardContent>
-        </Card>
+        <ClientExecutionTimeline
+          executionId={execution.id}
+          initialEvents={events}
+          isLive={isLive}
+          timezone={TIMEZONE}
+        />
 
         <Card>
           <CardHeader>
@@ -301,21 +278,6 @@ function prettyJson(value: unknown): string {
     console.error("Failed to stringify JSON", error);
     return String(value);
   }
-}
-
-function EmptyTimeline({ isLive }: { isLive: boolean }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-md border border-dashed p-6 text-sm text-muted-foreground">
-      {isLive ? (
-        <>
-          <span>Waiting for updates from the workflow...</span>
-          <span>Leave this page open or refresh to check for new events.</span>
-        </>
-      ) : (
-        <span>No events were recorded for this execution.</span>
-      )}
-    </div>
-  );
 }
 
 function ExecutionDetailSkeleton() {

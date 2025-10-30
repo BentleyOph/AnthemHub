@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import {
   IconAlertTriangle,
   IconArrowDown,
@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useExecutionStream } from "@/hooks/use-execution-stream";
 
 type Props = {
   execution: ExecutionDetail;
@@ -99,6 +100,10 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
   });
   const [isFetchingMore, startTransition] = useTransition();
 
+  // Use the execution stream hook for live updates
+  const isLive = LIVE_STATUSES.has(execution.status);
+  const { connected, events: streamEvents } = useExecutionStream(isLive ? execution.id : undefined);
+
   const fetchEvents = useCallback(
     async (page: number) => {
       const response = await fetch(`/api/executions/${execution.id}/events?page=${page}&per_page=${timeline.perPage}`, {
@@ -132,51 +137,24 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
     });
   };
 
-  useEffect(() => {
-    if (!LIVE_STATUSES.has(execution.status)) {
-      return;
-    }
+  // Merge stream events into timeline - compute derived state instead of setState in effect
+  const allTimelineItems = useMemo(() => {
+    if (streamEvents.length === 0) return timeline.items;
 
-    if (typeof window === "undefined" || typeof EventSource === "undefined") {
-      return;
-    }
+    const newItems = streamEvents.filter(
+      (streamEvent) => !timeline.items.some((item) => item.id === streamEvent.id)
+    );
 
-    const source = new EventSource(`/api/executions/${execution.id}/stream`);
+    if (newItems.length === 0) return timeline.items;
 
-    source.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data) as {
-          type: "event" | "execution";
-          data: Record<string, unknown>;
-        };
-
-        if (payload.type === "event") {
-          const maybeEvent = payload.data as Partial<ExecutionEventItem>;
-          if (maybeEvent.id && maybeEvent.timestamp) {
-            setTimeline((prev) => {
-              const exists = prev.items.some((item) => item.id === maybeEvent.id);
-              if (exists) return prev;
-              return {
-                ...prev,
-                items: [...prev.items, maybeEvent as ExecutionEventItem],
-              };
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Failed to parse SSE payload", error);
-      }
-    };
-
-    source.onerror = (error) => {
-      console.warn("Execution stream closed", error);
-      source.close();
-    };
-
-    return () => {
-      source.close();
-    };
-  }, [execution.id, execution.status]);
+    return [...timeline.items, ...newItems.map((e) => ({
+      id: e.id,
+      timestamp: e.timestamp,
+      stage: e.stage,
+      message: e.message,
+      raw: e.raw,
+    } as ExecutionEventItem))];
+  }, [timeline.items, streamEvents]);
 
   const copyJson = async (value: unknown) => {
     if (!navigator?.clipboard) return;
@@ -189,10 +167,10 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
 
   const sortedTimeline = useMemo(
     () =>
-      [...timeline.items].sort((a, b) =>
+      [...allTimelineItems].sort((a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       ),
-    [timeline.items],
+    [allTimelineItems],
   );
 
   return (
@@ -253,7 +231,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="py-2 text-destructive">
-                  <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed">
+                  <pre className="whitespace-pre-wrap text-xs leading-relaxed">
                     {execution.errorMessage}
                   </pre>
                 </CardContent>
@@ -276,9 +254,9 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 Event timeline
-                {LIVE_STATUSES.has(execution.status) && (
+                {isLive && (
                   <Badge variant="outline" className="gap-1 text-xs">
-                    <IconRefresh className="size-3 animate-spin" /> Live
+                    <IconRefresh className="size-3 animate-spin" /> {connected ? "Live" : "Connecting..."}
                   </Badge>
                 )}
               </CardTitle>

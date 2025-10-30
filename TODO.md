@@ -606,15 +606,15 @@ Deliverables
 
 Tasks
 
-- [ ] API: `GET /api/executions/:id/stream` (Edge-friendly if possible)
-- [ ] Server subscribes to Supabase Realtime changes for `execution_event` and `execution` filtered by `execution_id`
-- [ ] Proxy each DB change to SSE client as small JSON messages
-- [ ] Client hook `useExecutionStream(executionId)`
-- [ ] Authorization: verify requester can access `executionId` before opening stream; subscribe with service role only after authorization check
+- [x] API: `GET /api/executions/:id/stream` (Edge-friendly if possible)
+- [x] Server subscribes to Supabase Realtime changes for `execution_event` and `execution` filtered by `execution_id`
+- [x] Proxy each DB change to SSE client as small JSON messages
+- [x] Client hook `useExecutionStream(executionId)`
+- [x] Authorization: verify requester can access `executionId` before opening stream; subscribe with service role only after authorization check
 
 Acceptance
 
-- [ ] Progress updates appear in near real-time during a run
+- [x] Progress updates appear in near real-time during a run
 
 ## Phase 10 — Storage
 
@@ -632,24 +632,7 @@ Acceptance
 
 - [ ] Result links are time-limited signed URLs
 
-## Phase 11 — Dashboards & Metrics
-
-Deliverables
-
-- Admin dashboards for KPIs, charts, and recent failures.
-
-Tasks
-
-- [ ] Views or RPCs for daily counts, top workflows/clients
-- [ ] Pages in `app/admin/overview`
-- [ ] Recharts components for: Executions over time, Most used workflows, Most active clients
-- [ ] Recent failures table with links to details
-
-Acceptance
-
-- [ ] Data loads efficiently; queries use views/indices
-
-## Phase 12 — Hardening & Ops
+## Phase 11 — Hardening & Ops
 
 Deliverables
 
@@ -667,7 +650,7 @@ Acceptance
 
 - [ ] Endpoint schemas documented; happy-path and failure-path verified
 
-## Phase 13 — Testing & Seed
+## Phase 12 — Testing & Seed
 
 Deliverables
 
