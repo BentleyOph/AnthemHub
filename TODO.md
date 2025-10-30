@@ -586,12 +586,12 @@ Deliverables
 
 Tasks
 
-- [ ] API: `POST /api/webhooks/n8n/callback`
-  - [ ] Validate `X-Signature` using HMAC-SHA256 of raw body + `N8N_HMAC_SECRET`
-  - [ ] Upsert/record `n8n_run_id` if present
-  - [ ] Insert `execution_event` rows (service role client)
-  - [ ] If terminal status provided: update `execution` to `SUCCESS|ERROR`, set `output_payload`, `result_file_url`, `finished_at`
-  - [ ] Idempotency guard: only finalize if current status in `['PENDING','PROCESSING']`
+- [x] API: `POST /api/webhooks/n8n/callback`
+  - [ ] Validate `X-Signature` using HMAC-SHA256 of raw body + `N8N_HMAC_SECRET`(TO BE DONE LATER AFTER MVP NOT NOW)
+  - [x] Upsert/record `n8n_run_id` if present
+  - [x] Insert `execution_event` rows (service role client)
+  - [x] If terminal status provided: update `execution` to `SUCCESS|ERROR`, set `output_payload`, `result_file_url`, `finished_at`
+  - [x] Idempotency guard: only finalize if current status in `['PENDING','PROCESSING']`
 
 Acceptance
 
