@@ -2,9 +2,11 @@ import Link from "next/link";
 import {
   IconChevronRight,
   IconInnerShadowTop,
+  IconLogout,
 } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
+import { logout } from "@/app/actions/logout";
 
 export const CLIENT_NAV_ITEMS = [
   { label: "My Workflows", href: "/overview" },
@@ -56,6 +58,12 @@ export function ClientNav({
             </Link>
           </Button>
         ))}
+        <form action={logout}>
+          <Button size="sm" variant="ghost" type="submit">
+            <IconLogout className="mr-2 size-4" />
+            Log out
+          </Button>
+        </form>
       </div>
     </nav>
   );

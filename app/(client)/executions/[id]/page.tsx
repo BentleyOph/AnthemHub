@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import {
-  IconAlertTriangle,
   IconArrowLeft,
   IconDownload,
   IconHistory,
@@ -11,7 +10,8 @@ import {
 
 import { ClientNav } from "@/components/client/client-nav";
 import { ClientExecutionTimeline } from "@/components/client/execution-timeline";
-import { Badge } from "@/components/ui/badge";
+import { ClientExecutionStatusBadge } from "@/components/client/execution-status-badge";
+import { ExecutionResult } from "@/components/client/execution-result";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,16 +30,6 @@ import type { ClientExecutionStatus } from "@/lib/client/executions";
 
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 const LIVE_STATUSES = new Set<ClientExecutionStatus>(["PENDING", "PROCESSING"]);
-
-const STATUS_META: Record<
-  ClientExecutionStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-> = {
-  SUCCESS: { label: "Complete", variant: "secondary" },
-  ERROR: { label: "Failed", variant: "destructive" },
-  PROCESSING: { label: "Processing", variant: "outline" },
-  PENDING: { label: "Queued", variant: "outline" },
-};
 
 type PageProps = {
   params: Promise<{
@@ -73,7 +63,6 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
     console.error("Failed to load execution events", error);
   }
 
-  const statusMeta = STATUS_META[execution.status] ?? STATUS_META.PENDING;
   const isLive = LIVE_STATUSES.has(execution.status);
 
   return (
@@ -113,7 +102,11 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+            <ClientExecutionStatusBadge
+              executionId={execution.id}
+              initialStatus={execution.status}
+              isLive={isLive}
+            />
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
@@ -179,39 +172,12 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
           timezone={TIMEZONE}
         />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Output</CardTitle>
-            <CardDescription>
-              Final payload provided by the workflow or attached result files.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {execution.errorMessage ? (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                <IconAlertTriangle className="mt-0.5 size-4" />
-                <p>{execution.errorMessage}</p>
-              </div>
-            ) : null}
-            {execution.resultFileUrl ? (
-              <Button asChild size="sm" variant="secondary">
-                <a href={execution.resultFileUrl} target="_blank" rel="noreferrer">
-                  <IconDownload className="mr-2 size-4" />
-                  Open result file
-                </a>
-              </Button>
-            ) : null}
-            {execution.outputPayload ? (
-              <pre className="max-h-80 overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed">
-                {prettyJson(execution.outputPayload)}
-              </pre>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No output payload recorded for this execution.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <ExecutionResult
+          executionId={execution.id}
+          isLive={isLive}
+          initialOutput={execution.outputPayload}
+          initialFileUrl={execution.resultFileUrl}
+        />
       </div>
 
       <Card>
