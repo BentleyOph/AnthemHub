@@ -185,7 +185,11 @@ export async function POST(request: NextRequest) {
         startedByUserId: authData.user.id,
       },
       {
-        attempts: 1,
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 1000,
+        },
       },
     );
   } catch (error) {

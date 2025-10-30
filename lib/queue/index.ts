@@ -1,5 +1,10 @@
-import { Queue } from "bullmq";
-import type { ConnectionOptions, QueueOptions } from "bullmq";
+import { Queue, Worker } from "bullmq";
+import type {
+  ConnectionOptions,
+  QueueOptions,
+  WorkerOptions,
+  Processor,
+} from "bullmq";
 
 export const EXECUTION_QUEUE_NAME = "execution-start";
 
@@ -56,11 +61,17 @@ export function createExecutionQueue(
 }
 
 let executionQueueInstance: Queue<ExecutionJob> | null = null;
+let executionWorkerInstance: Worker<ExecutionJob> | null = null;
 
 export function getExecutionQueue(): Queue<ExecutionJob> {
   if (!executionQueueInstance) {
     executionQueueInstance = createExecutionQueue({
       defaultJobOptions: {
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 1000,
+        },
         removeOnComplete: true,
         removeOnFail: false,
       },
@@ -68,4 +79,23 @@ export function getExecutionQueue(): Queue<ExecutionJob> {
   }
 
   return executionQueueInstance;
+}
+
+export function getExecutionWorker(
+  processor: Processor<ExecutionJob, unknown, string>,
+  options: Partial<WorkerOptions> = {},
+): Worker<ExecutionJob> {
+  if (!executionWorkerInstance) {
+    const connection = options.connection ?? resolveRedisConnection();
+    executionWorkerInstance = new Worker<ExecutionJob>(
+      EXECUTION_QUEUE_NAME,
+      processor,
+      {
+        ...options,
+        connection,
+      },
+    );
+  }
+
+  return executionWorkerInstance;
 }

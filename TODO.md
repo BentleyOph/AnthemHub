@@ -567,16 +567,16 @@ Deliverables
 
 Tasks
 
-- [ ] `lib/queue/index.ts` → BullMQ init (Queue, Worker, QueueScheduler)
-- [ ] `workers/exec-start.ts` → process jobs:
-  - [ ] POST to `workflow.n8n_webhook_url` with payload { execution_id, client_id, workflow_id, input, callback_url }
-  - [ ] Retries with exponential backoff (5 attempts)
-  - [ ] On final failure, set `execution.status='ERROR'` and `error_message`
-- [ ] Run script in `package.json` (e.g., `pnpm worker:exec`)
+- [x] `lib/queue/index.ts` → BullMQ init (Queue, Worker, QueueScheduler)
+- [x] `workers/exec-start.ts` → process jobs:
+  - [x] POST to `workflow.n8n_webhook_url` with payload { execution_id, client_id, workflow_id, input, callback_url }
+  - [x] Retries with exponential backoff (5 attempts)
+  - [x] On final failure, set `execution.status='ERROR'` and `error_message`
+- [x] Run script in `package.json` (e.g., `pnpm worker:exec`)
 
 Acceptance
 
-- [ ] Jobs retry and settle into ERROR on exhaustion
+- [x] Jobs retry and settle into ERROR on exhaustion
 
 ## Phase 8 — n8n Callback & Events
 
