@@ -114,7 +114,7 @@ async function main() {
   console.log(`   ✔ Client id: ${clientId}`);
 
   // (Optional) Create a client user for Acme
-  const clientUserEmail = "user@acme.test";
+  const clientUserEmail = "user@user.test";
   let clientUser: User;
   try {
     clientUser = await ensureAuthUser(clientUserEmail, "Client@123");
