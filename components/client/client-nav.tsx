@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { logout } from "@/app/actions/logout";
 
 export const CLIENT_NAV_ITEMS = [
-  { label: "My Workflows", href: "/overview" },
+  { label: "Overview", href: "/overview" },
   { label: "Catalog", href: "/catalog" },
   { label: "Executions", href: "/executions" },
 ] as const;
