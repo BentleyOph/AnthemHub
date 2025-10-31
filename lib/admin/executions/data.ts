@@ -234,11 +234,13 @@ export async function listExecutions(
     const conditions = new Set<string>();
 
     if (isUuid(params.q)) {
+      // For UUID searches, use exact match only
       conditions.add(`id.eq.${params.q}`);
+    } else {
+      // For non-UUID searches, search in n8n_run_id only
+      // Note: Cannot use id::text.ilike with PostgREST's .or() syntax
+      conditions.add(`n8n_run_id.ilike.%${sanitized}%`);
     }
-
-    conditions.add(`id::text.ilike.${sanitized}%`);
-    conditions.add(`n8n_run_id.ilike.%${sanitized}%`);
 
     query = query.or(Array.from(conditions).join(","));
   }
