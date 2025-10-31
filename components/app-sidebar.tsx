@@ -53,6 +53,11 @@ const data = {
       icon: IconUsers,
     },
     {
+      title: "Users",
+      url: "/admin/users",
+      icon: IconUsers,
+    },
+    {
       title: "Access Requests",
       url: "/admin/access-requests",
       icon: IconReport,
