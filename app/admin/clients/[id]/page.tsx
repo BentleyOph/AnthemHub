@@ -105,7 +105,6 @@ export default async function AdminClientDetailPage({ params }: RouteParams) {
         <Card>
           <CardHeader>
             <CardTitle>Client profile</CardTitle>
-            <CardDescription>Primary metadata synced with Supabase.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="flex items-center gap-2 text-sm">
@@ -193,7 +192,7 @@ export default async function AdminClientDetailPage({ params }: RouteParams) {
       <Card>
         <CardHeader>
           <CardTitle>Recent executions</CardTitle>
-          <CardDescription>Latest activity scoped to this client.</CardDescription>
+          <CardDescription>Latest activity.</CardDescription>
           <CardAction>
             <Button variant="secondary" size="sm" asChild>
               <Link
