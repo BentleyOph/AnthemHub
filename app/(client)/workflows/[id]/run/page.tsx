@@ -135,9 +135,9 @@ async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Input payload</CardTitle>
+          <CardTitle>Input </CardTitle>
           <CardDescription>
-            Provide the fields defined by this workflow&apos;s JSON schema. Validation happens client-side before we queue an execution.
+            Provide the fields required by this workflow
           </CardDescription>
         </CardHeader>
         <CardContent>

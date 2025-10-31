@@ -281,7 +281,7 @@ export function WorkflowRunForm({
           </span>
         ) : (
           <span className="text-muted-foreground text-sm">
-            You will be redirected to live progress once the run starts.
+            You will be redirected once the run starts.
           </span>
         )}
       </div>
