@@ -26,6 +26,10 @@ type ClientListRow = {
     | { count: number | null }
     | Array<{ count: number | null }>
     | null;
+  user_profile:
+    | { count: number | null }
+    | Array<{ count: number | null }>
+    | null;
 };
 
 export type ClientListItem = {
@@ -35,6 +39,7 @@ export type ClientListItem = {
   company: string | null;
   createdAt: string;
   assignedWorkflowCount: number;
+  userCount: number;
 };
 
 export type ClientListResult = {
@@ -192,7 +197,8 @@ export async function listClients(params: ClientListNormalized): Promise<ClientL
         email,
         company,
         created_at,
-        client_workflow_access(count)
+        client_workflow_access(count),
+        user_profile!user_profile_client_id_fkey(count)
       `,
       { count: "exact" },
     )
@@ -226,6 +232,7 @@ export async function listClients(params: ClientListNormalized): Promise<ClientL
     company: row.company,
     createdAt: row.created_at,
     assignedWorkflowCount: extractRelationCount(row.client_workflow_access),
+    userCount: extractRelationCount(row.user_profile),
   }));
 
   const nextPage = fromIndex + items.length < total ? params.page + 1 : null;

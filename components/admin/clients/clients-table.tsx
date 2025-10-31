@@ -267,8 +267,10 @@ export function AdminClientsList({ result, timeZone }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>UUID</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead className="text-center">Users</TableHead>
               <TableHead className="text-center">Workflows</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -277,7 +279,7 @@ export function AdminClientsList({ result, timeZone }: Props) {
           <TableBody>
             {result.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
                   No clients found. Try adjusting your search or create a new client.
                 </TableCell>
               </TableRow>
@@ -285,8 +287,12 @@ export function AdminClientsList({ result, timeZone }: Props) {
               result.data.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground break-all">
+                    {client.id}
+                  </TableCell>
                   <TableCell>{client.company ?? "—"}</TableCell>
                   <TableCell>{client.email ?? "—"}</TableCell>
+                  <TableCell className="text-center">{client.userCount}</TableCell>
                   <TableCell className="text-center">{client.assignedWorkflowCount}</TableCell>
                   <TableCell>{formatDate(client.createdAt, timeZone)}</TableCell>
                   <TableCell className="text-right">
