@@ -158,6 +158,8 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
                       Download file
                     </a>
                   </Button>
+                ) : execution.outputPayload != null ? (
+                  <span className="text-muted-foreground">Displayed below</span>
                 ) : (
                   <span className="text-muted-foreground">Not available</span>
                 )}
@@ -175,27 +177,27 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
           timezone={TIMEZONE}
         />
 
-        <ExecutionResult
-          executionId={execution.id}
-          isLive={isLive}
-          initialOutput={execution.outputPayload}
-          initialFileUrl={execution.resultFileUrl}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Input summary</CardTitle>
+            <CardDescription>
+              Saved snapshot of the values provided when starting this run.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed">
+              {prettyJson(execution.inputPayload)}
+            </pre>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Input summary</CardTitle>
-          <CardDescription>
-            Saved snapshot of the values provided when starting this run.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed">
-            {prettyJson(execution.inputPayload)}
-          </pre>
-        </CardContent>
-      </Card>
+      <ExecutionResult
+        executionId={execution.id}
+        isLive={isLive}
+        initialOutput={execution.outputPayload}
+        initialFileUrl={execution.resultFileUrl}
+      />
     </div>
   );
 }
