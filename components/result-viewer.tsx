@@ -147,8 +147,8 @@ export function ResultViewer({
         {output ? (
           <div className="rounded-md border bg-muted">
             <pre
-              className={`max-h-96 overflow-auto p-4 text-sm leading-relaxed ${
-                hasTextContent ? "whitespace-pre-wrap" : "font-mono text-xs"
+              className={`max-h-96 w-full max-w-full overflow-auto p-4 leading-relaxed whitespace-pre-wrap break-all ${
+                hasTextContent ? "text-sm" : "font-mono text-xs"
               }`}
             >
               {displayText}

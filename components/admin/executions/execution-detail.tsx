@@ -232,7 +232,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="py-2 text-destructive">
-                    <pre className="whitespace-pre-wrap text-xs leading-relaxed">
+                    <pre className="whitespace-pre-wrap break-all text-xs leading-relaxed">
                       {execution.errorMessage}
                     </pre>
                   </CardContent>
@@ -282,7 +282,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                         </p>
                       )}
                       {event.raw ? (
-                        <pre className="mt-2 max-h-48 overflow-auto rounded bg-background p-2 text-xs text-muted-foreground">
+                        <pre className="mt-2 max-h-48 w-full max-w-full overflow-auto rounded bg-background p-2 text-xs text-muted-foreground whitespace-pre-wrap break-all">
                           {prettyJson(event.raw)}
                         </pre>
                       ) : null}
@@ -322,7 +322,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
               </Button>
             </CardHeader>
             <CardContent>
-              <pre className="max-h-[480px] overflow-auto rounded-lg bg-muted/30 p-4 text-xs">
+              <pre className="max-h-[480px] w-full max-w-full overflow-auto rounded-lg bg-muted/30 p-4 text-xs whitespace-pre-wrap break-all">
                 {prettyJson(execution.inputPayload)}
               </pre>
             </CardContent>
@@ -338,7 +338,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
               </Button>
             </CardHeader>
             <CardContent>
-              <pre className="max-h-[480px] overflow-auto rounded-lg bg-muted/30 p-4 text-xs">
+              <pre className="max-h-[480px] w-full max-w-full overflow-auto rounded-lg bg-muted/30 p-4 text-xs whitespace-pre-wrap break-all">
                 {execution.outputPayload ? prettyJson(execution.outputPayload) : "{}"}
               </pre>
             </CardContent>
@@ -391,7 +391,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                 </div>
                 <div className="md:col-span-2">
                   <dt className="font-medium text-foreground">Error message</dt>
-                  <dd className="whitespace-pre-wrap text-sm text-destructive">
+                  <dd className="whitespace-pre-wrap break-all text-sm text-destructive">
                     {execution.errorMessage ?? "—"}
                   </dd>
                 </div>

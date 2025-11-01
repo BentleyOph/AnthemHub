@@ -185,7 +185,7 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed">
+            <pre className="max-h-96 w-full max-w-full overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed whitespace-pre-wrap break-all">
               {prettyJson(execution.inputPayload)}
             </pre>
           </CardContent>
