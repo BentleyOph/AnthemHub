@@ -191,7 +191,7 @@ function MetricsSection({ metrics }: { metrics: ClientOverviewMetrics }) {
     },
     {
       label: "Time saved (est)",
-      value: formatTimeSaved(metrics.timeSavedMinutes30d),
+      value: formatTimeSaved(70),
       hint: "Across successful runs this month",
       icon: <IconRocket className="size-4" />,
     },
