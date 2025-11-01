@@ -8,6 +8,7 @@ import type {
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getClientProfile } from "./profile";
+import type { AccessRequestStatus } from "@/lib/access-requests/constants";
 
 export type ExecutionStatus = "PENDING" | "PROCESSING" | "SUCCESS" | "ERROR";
 
@@ -43,6 +44,7 @@ export type ClientOverviewDiscoverItem = {
   name: string;
   description: string;
   iconUrl: string | null;
+  requestStatus: AccessRequestStatus | null;
 };
 
 export type ClientOverviewData = {
@@ -344,6 +346,26 @@ export async function getClientOverviewData(): Promise<ClientOverviewData> {
     }),
   );
 
+  // Fetch pending/previous access requests for the current user to decorate Discover items
+  const { data: requestsData, error: requestsError } = await supabase
+    .from("access_request")
+    .select("workflow_id, status, created_at")
+    .eq("client_id", clientId)
+    .eq("requester_id", profile.userId)
+    .order("created_at", { ascending: false });
+
+  if (requestsError && requestsError.code !== "42501") {
+    console.error("Failed to load access requests for discover", requestsError);
+  }
+
+  const requestMap = new Map<string, { status: AccessRequestStatus | null; created_at: string }>();
+  (requestsData ?? []).forEach((row: { workflow_id: string; status: string | null; created_at: string }) => {
+    requestMap.set(row.workflow_id, {
+      status: (row.status as AccessRequestStatus) ?? null,
+      created_at: row.created_at,
+    });
+  });
+
   const { data: discoverData, error: discoverError } = await supabase
     .from("workflow")
     .select(
@@ -369,12 +391,16 @@ export async function getClientOverviewData(): Promise<ClientOverviewData> {
         Boolean(row) && !assignedWorkflowIds.includes(row.id),
     )
     .slice(0, 10)
-    .map<ClientOverviewDiscoverItem>((row) => ({
-      id: row.id,
-      name: row.name ?? "Untitled workflow",
-      description: row.public_desc?.trim() ?? "Discover what's possible.",
-      iconUrl: row.icon_url ?? null,
-    }));
+    .map<ClientOverviewDiscoverItem>((row) => {
+      const req = requestMap.get(row.id);
+      return {
+        id: row.id,
+        name: row.name ?? "Untitled workflow",
+        description: row.public_desc?.trim() ?? "Discover what's possible.",
+        iconUrl: row.icon_url ?? null,
+        requestStatus: req?.status ?? null,
+      };
+    });
 
   return {
     userName: profile.userName,

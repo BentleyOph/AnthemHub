@@ -16,6 +16,7 @@ import {
   type ClientOverviewMetrics,
 } from "@/lib/client/overview";
 import { ClientNav } from "@/components/client/client-nav";
+import { RequestAccessButton } from "@/components/client/request-access-button";
 import { WorkflowIcon } from "@/components/client/workflow-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,7 @@ async function ClientOverviewContent() {
 
           <div className="grid gap-6 lg:grid-cols-[1.75fr_minmax(0,1fr)]">
             <RecentActivitySection executions={data.recentExecutions} />
-            <DiscoverSection discover={data.discover} />
+            <DiscoverSection discover={data.discover} canRequest={Boolean(data.clientId)} />
           </div>
         </>
       ) : (
@@ -293,8 +294,10 @@ function RecentActivitySection({
 
 function DiscoverSection({
   discover,
+  canRequest,
 }: {
   discover: ClientOverviewData["discover"];
+  canRequest: boolean;
 }) {
   return (
     <Card className="flex h-full flex-col">
@@ -328,11 +331,17 @@ function DiscoverSection({
                   </div>
                 </CardHeader>
                 <CardFooter>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/workflows/${workflow.id}`}>
-                      Request access
-                    </Link>
-                  </Button>
+                  <RequestAccessButton
+                    workflowId={workflow.id}
+                    workflowName={workflow.name}
+                    status={workflow.requestStatus ?? null}
+                    disabled={!canRequest}
+                    disabledReason={
+                      canRequest
+                        ? null
+                        : "You need to be linked to a client workspace before requesting access."
+                    }
+                  />
                 </CardFooter>
               </Card>
             ))}

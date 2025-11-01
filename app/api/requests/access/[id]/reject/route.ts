@@ -13,7 +13,10 @@ const pathParamsSchema = z.object({
   id: z.string().uuid(),
 });
 
-export async function POST(_request: NextRequest, context: { params: { id: string } }) {
+export async function POST(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   try {
     await requireAdminSession();
   } catch (error) {
@@ -25,7 +28,8 @@ export async function POST(_request: NextRequest, context: { params: { id: strin
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsedParams = pathParamsSchema.safeParse(context.params);
+  const params = await context.params;
+  const parsedParams = pathParamsSchema.safeParse(params);
   if (!parsedParams.success) {
     return NextResponse.json({ error: "Invalid access request id." }, { status: 400 });
   }
