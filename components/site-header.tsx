@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
@@ -10,7 +11,14 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-semibold tracking-tight">Admin Console</h1>
+        <Image
+          src="/logo.svg"
+          alt="Logo"
+          width={96}
+          height={24}
+          className="h-6 w-auto"
+          priority
+        />
         <div className="ml-auto flex items-center gap-2" />
       </div>
     </header>

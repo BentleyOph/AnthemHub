@@ -1,9 +1,6 @@
 import Link from "next/link";
-import {
-  IconChevronRight,
-  IconInnerShadowTop,
-  IconLogout,
-} from "@tabler/icons-react";
+import Image from "next/image";
+import { IconChevronRight, IconLogout } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { logout } from "@/app/actions/logout";
@@ -40,7 +37,7 @@ export function ClientNav({
     <nav className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border p-6 shadow-sm md:flex-row md:items-center md:justify-between lg:p-8">
       <div className="flex items-center gap-4">
         <span className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-full ring-1 ring-primary/20">
-          <IconInnerShadowTop className="size-6" />
+          <Image src="/logo.svg" alt="Logo" width={24} height={24} className="h-6 w-6" />
         </span>
         <div className="space-y-1">
           <p className="font-semibold leading-none">Anthem Agency</p>
