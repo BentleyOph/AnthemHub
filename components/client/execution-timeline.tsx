@@ -82,8 +82,8 @@ export function ClientExecutionTimeline({ executionId, initialEvents, isLive, ti
           <CardTitle>Live progress</CardTitle>
           <CardDescription>
             {isLive
-              ? "Events emitted by the workflow while it runs. Updates appear in real-time."
-              : "Events emitted by the workflow during execution."}
+              ? "Events from the workflow while it runs."
+              : "Events "}
           </CardDescription>
         </div>
         {isLive && (
