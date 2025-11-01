@@ -616,21 +616,29 @@ Acceptance
 
 - [x] Progress updates appear in near real-time during a run
 
-## Phase 10 — Storage
+## Phase 10 — Storage (Workflow Icons Only)
 
 Deliverables
 
-- Uploads for icons and final result file URLs stored in Supabase Storage with signed URLs.
+- Workflow icon uploads stored in Supabase Storage bucket `workflow-icons`.
+- Icons are served via time-limited signed URLs and refreshed when needed.
+- Admin create/edit flows support upload and removal; DB stores only the object path.
 
 Tasks
 
-- [ ] `lib/storage/supabase.ts` for uploads and URL signing
-- [ ] Save final `result_file_url` on finalize (from callback or worker)
-- [ ] Optional: abstracted interfaces to allow S3 switch later
+- [x] Storage client: ensure `lib/storage/supabase.ts` supports icon upload + `createSignedUrl`.
+- [x] API (admin): `POST /api/workflows` and `PATCH /api/workflows/:id` accept `multipart/form-data` with `icon`; store object path in `workflow.icon_url`; support `removeIcon`.
+- [x] Admin list/detail: resolve `icon_url` to signed URL before returning to UI.
+- [x] Client surfaces: resolve `icon_url` to signed URL for catalog, overview, workflows list, run/executions pages.
+- [x] Validation: restrict uploads to images (png/jpg/svg/webp), add size limit (e.g., 2MB), and sanitize filenames.
+- [x] Config: document `SUPABASE_WORKFLOW_ICON_BUCKET=workflow-icons` and required env (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), plus bucket creation in Supabase.
+- [x] Optional: centralize icon signing helper to avoid duplication across admin/client loaders.
 
 Acceptance
 
-- [ ] Result links are time-limited signed URLs
+- [x] Creating a workflow with an icon uploads to `workflow-icons` and displays via signed URL.
+- [x] Editing supports replacing or removing the icon; changes reflect in admin and client views.
+- [x] All user-visible icon URLs are signed with a reasonable TTL and still render after refresh.
 
 ## Phase 11 — Hardening & Ops
 

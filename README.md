@@ -430,6 +430,12 @@ from execution group by 1 order by 1;
 * **Option A:** Supabase Storage (signed URLs).
 * **Option B:** S3/MinIO with pre-signed URLs.
 
+For Supabase Storage (current setup):
+
+- Create a bucket named `workflow-icons` (or set `SUPABASE_WORKFLOW_ICON_BUCKET`).
+- Ensure the service role key (`SUPABASE_SERVICE_ROLE_KEY`) is available to the server for uploads and signing.
+- Icons are stored by path only; UI fetches signed URLs on demand with a 1-hour TTL.
+
 Save final URL in `execution.result_file_url`.
 
 ---
@@ -440,6 +446,7 @@ Save final URL in `execution.result_file_url`.
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...   # server-only
+SUPABASE_WORKFLOW_ICON_BUCKET=workflow-icons
 DATABASE_URL=postgres://<supabase-connection-string>   # optional if needed by tools
 REDIS_URL=redis://...
 S3_BUCKET=...
