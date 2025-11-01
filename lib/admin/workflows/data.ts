@@ -1,16 +1,14 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-import { extname } from "node:path";
-
 import { z } from "zod";
 
-import { createSignedUrl, uploadToSupabase } from "@/lib/storage/supabase";
+import {
+  resolveWorkflowIconUrl,
+  uploadWorkflowIcon as storeWorkflowIcon,
+  WorkflowIconError,
+} from "@/lib/storage/workflow-icons";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { parseJsonSchema, type JsonSchema } from "@/lib/schema/jsonschema";
-
-const ICON_BUCKET = process.env.SUPABASE_WORKFLOW_ICON_BUCKET ?? "workflow-icons";
-const DEFAULT_ICON_EXPIRY_SECONDS = 3600;
 
 function escapeForLike(value: string): string {
   return value.replace(/[%_\\]/g, (match) => `\\${match}`);
@@ -181,41 +179,6 @@ export function normalizeWorkflowListParams(
   };
 }
 
-function generateIconPath(filename: string): string {
-  const extension = extname(filename) || ".png";
-  return `${randomUUID()}${extension.toLowerCase()}`;
-}
-
-export async function uploadWorkflowIcon(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const path = generateIconPath(file.name || "workflow-icon.png");
-  await uploadToSupabase(ICON_BUCKET, path, buffer, {
-    contentType: file.type || "image/png",
-    upsert: true,
-  });
-  return path;
-}
-
-async function resolveIconUrl(iconUrl: string | null): Promise<string | null> {
-  if (!iconUrl) return null;
-  if (/^https?:\/\//i.test(iconUrl)) {
-    return iconUrl;
-  }
-
-  try {
-    const signed = await createSignedUrl(
-      ICON_BUCKET,
-      iconUrl,
-      DEFAULT_ICON_EXPIRY_SECONDS,
-    );
-    return signed.signedUrl ?? null;
-  } catch (error) {
-    console.error("Failed to create signed URL for workflow icon", error);
-    return null;
-  }
-}
-
 export async function listWorkflows(
   params: WorkflowListNormalized,
 ): Promise<WorkflowListResult> {
@@ -263,7 +226,7 @@ export async function listWorkflows(
       id: row.id,
       name: row.name,
       description: row.public_desc,
-      iconUrl: await resolveIconUrl(row.icon_url),
+      iconUrl: await resolveWorkflowIconUrl(row.icon_url),
       isPublished: row.is_published,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -321,7 +284,7 @@ export async function getWorkflowDetail(id: string): Promise<WorkflowDetail | nu
     name: data.name,
     description: data.public_desc,
     internalNotes: data.internal_notes,
-    iconUrl: await resolveIconUrl(data.icon_url),
+    iconUrl: await resolveWorkflowIconUrl(data.icon_url),
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
@@ -333,7 +296,23 @@ export async function getWorkflowDetail(id: string): Promise<WorkflowDetail | nu
 export async function createWorkflow(
   payload: WorkflowUpsertInput,
 ): Promise<WorkflowDetail> {
-  const iconPath = payload.iconFile ? await uploadWorkflowIcon(payload.iconFile) : undefined;
+  let iconPath: string | undefined;
+  if (payload.iconFile instanceof File) {
+    try {
+      iconPath = await storeWorkflowIcon(payload.iconFile);
+    } catch (error) {
+      if (error instanceof WorkflowIconError) {
+        throw new z.ZodError([
+          {
+            code: z.ZodIssueCode.custom,
+            path: ["icon"],
+            message: error.message,
+          },
+        ]);
+      }
+      throw error;
+    }
+  }
   const body = normalizeUpsertPayload(payload, iconPath);
 
   const service = getSupabaseServiceRoleClient();
@@ -365,7 +344,7 @@ export async function createWorkflow(
     name: data.name,
     description: data.public_desc,
     internalNotes: data.internal_notes,
-    iconUrl: await resolveIconUrl(data.icon_url),
+    iconUrl: await resolveWorkflowIconUrl(data.icon_url),
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
@@ -378,8 +357,23 @@ export async function updateWorkflow(
   id: string,
   payload: WorkflowUpsertInput,
 ): Promise<WorkflowDetail> {
-  const iconPath =
-    payload.iconFile instanceof File ? await uploadWorkflowIcon(payload.iconFile) : undefined;
+  let iconPath: string | undefined;
+  if (payload.iconFile instanceof File) {
+    try {
+      iconPath = await storeWorkflowIcon(payload.iconFile);
+    } catch (error) {
+      if (error instanceof WorkflowIconError) {
+        throw new z.ZodError([
+          {
+            code: z.ZodIssueCode.custom,
+            path: ["icon"],
+            message: error.message,
+          },
+        ]);
+      }
+      throw error;
+    }
+  }
   const body = normalizeUpsertPayload(payload, iconPath);
 
   const service = getSupabaseServiceRoleClient();
@@ -412,7 +406,7 @@ export async function updateWorkflow(
     name: data.name,
     description: data.public_desc,
     internalNotes: data.internal_notes,
-    iconUrl: await resolveIconUrl(data.icon_url),
+    iconUrl: await resolveWorkflowIconUrl(data.icon_url),
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,

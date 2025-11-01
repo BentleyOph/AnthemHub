@@ -7,6 +7,7 @@ import type { AccessRequestStatus } from "@/lib/access-requests/constants";
 import { getClientAccessContext } from "./access";
 import type { ClientProfile } from "./profile";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveWorkflowIconUrl } from "@/lib/storage/workflow-icons";
 
 type AccessRow = {
   workflow_id: string;
@@ -64,14 +65,15 @@ export interface ClientWorkflowsData {
   pendingRequests: ClientPendingRequest[];
 }
 
-function mapAssignedWorkflow(
+async function mapAssignedWorkflow(
   row: AccessRow,
   lastRunMap: Map<string, ExecutionRow>,
-): ClientWorkflowListItem {
+): Promise<ClientWorkflowListItem> {
   const workflow = row.workflow;
   const detailsHref = workflow ? `/workflows/${workflow.id}` : "#";
   const runHref = workflow ? `/workflows/${workflow.id}/run` : "#";
   const lastRun = workflow ? lastRunMap.get(workflow.id) ?? null : null;
+  const iconUrl = await resolveWorkflowIconUrl(workflow?.icon_url ?? null);
 
   return {
     id: workflow?.id ?? row.workflow_id,
@@ -83,7 +85,7 @@ function mapAssignedWorkflow(
       workflow?.public_desc?.trim() && workflow.public_desc.length > 0
         ? workflow.public_desc
         : "No description provided yet.",
-    iconUrl: workflow?.icon_url ?? null,
+    iconUrl,
     isPublished: Boolean(workflow?.is_published),
     assignedAt: row.created_at,
     runHref,
@@ -138,7 +140,7 @@ async function loadAssignedWorkflows(
 
   const lastRunMap = await loadLastRuns(supabase, profile.clientId, workflowIds);
 
-  return assignedRows.map((row) => mapAssignedWorkflow(row, lastRunMap));
+  return Promise.all(assignedRows.map((row) => mapAssignedWorkflow(row, lastRunMap)));
 }
 
 async function loadLastRuns(
@@ -236,8 +238,9 @@ async function enrichPendingRequests(
     }
   }
 
-  return requests.map((request) => {
+  return Promise.all(requests.map(async (request) => {
     const workflow = workflowMap.get(request.workflowId) ?? null;
+    const iconUrl = await resolveWorkflowIconUrl(workflow?.icon_url ?? null);
     return {
       id: request.id,
       workflowId: request.workflowId,
@@ -248,7 +251,7 @@ async function enrichPendingRequests(
           ? workflow.name
           : "Untitled workflow",
       workflowDescription: workflow?.public_desc ?? null,
-      iconUrl: workflow?.icon_url ?? null,
+      iconUrl,
     } satisfies ClientPendingRequest;
-  });
+  }));
 }

@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ClientExecutionStatus } from "@/lib/client/executions";
 import { getClientProfile, type ClientProfile } from "@/lib/client/profile";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveWorkflowIconUrl } from "@/lib/storage/workflow-icons";
 
 type ExecutionRow = {
   id: string;
@@ -77,8 +78,9 @@ function calculateDurationMs(startedAt: string, finishedAt: string | null): numb
   return finished - started;
 }
 
-function mapExecutionRow(row: ExecutionRow): ClientExecutionDetail {
+async function mapExecutionRow(row: ExecutionRow): Promise<ClientExecutionDetail> {
   const workflow = row.workflow ?? null;
+  const workflowIconUrl = await resolveWorkflowIconUrl(workflow?.icon_url ?? null);
 
   return {
     id: row.id,
@@ -91,7 +93,7 @@ function mapExecutionRow(row: ExecutionRow): ClientExecutionDetail {
       workflow?.public_desc?.trim() && workflow.public_desc.length > 0
         ? workflow.public_desc
         : null,
-    workflowIconUrl: workflow?.icon_url ?? null,
+    workflowIconUrl,
     status: row.status,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
@@ -147,9 +149,11 @@ export async function getClientExecutionDetail(
     return null;
   }
 
+  const execution = await mapExecutionRow(data);
+
   return {
     profile,
-    execution: mapExecutionRow(data),
+    execution,
   };
 }
 

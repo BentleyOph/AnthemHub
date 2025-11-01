@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { AccessRequestStatus } from "@/lib/access-requests/constants";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveWorkflowIconUrl } from "@/lib/storage/workflow-icons";
 
 import {
   getClientAccessContext,
@@ -36,12 +37,13 @@ export interface ClientCatalogData {
   totalAssigned: number;
 }
 
-function mapWorkflowRow(
+async function mapWorkflowRow(
   row: WorkflowRow,
   assignedSet: Set<string>,
   requestMap: Map<string, ClientAccessContext["accessRequests"][number]>,
-): CatalogWorkflowItem {
+): Promise<CatalogWorkflowItem> {
   const request = requestMap.get(row.id ?? "");
+  const iconUrl = await resolveWorkflowIconUrl(row.icon_url);
 
   return {
     id: row.id,
@@ -50,7 +52,7 @@ function mapWorkflowRow(
       row.public_desc?.trim() && row.public_desc.length > 0
         ? row.public_desc
         : "No description provided yet.",
-    iconUrl: row.icon_url ?? null,
+    iconUrl,
     isAssigned: assignedSet.has(row.id),
     requestId: request?.id ?? null,
     requestStatus: request?.status ?? null,
@@ -77,9 +79,9 @@ async function loadWorkflows(
     throw error;
   }
 
-  return (data ?? [])
-    .filter((row): row is WorkflowRow => Boolean(row?.id))
-    .map((row) => mapWorkflowRow(row, assignedSet, requestMap));
+  const rows = (data ?? []).filter((row): row is WorkflowRow => Boolean(row?.id));
+
+  return Promise.all(rows.map((row) => mapWorkflowRow(row, assignedSet, requestMap)));
 }
 
 export async function getClientCatalogData(options?: {

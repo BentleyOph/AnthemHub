@@ -9,6 +9,7 @@ import type {
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getClientProfile } from "./profile";
 import type { AccessRequestStatus } from "@/lib/access-requests/constants";
+import { resolveWorkflowIconUrl } from "@/lib/storage/workflow-icons";
 
 export type ExecutionStatus = "PENDING" | "PROCESSING" | "SUCCESS" | "ERROR";
 
@@ -308,22 +309,25 @@ export async function getClientOverviewData(): Promise<ClientOverviewData> {
     .map((row) => row.workflow_id)
     .filter(Boolean);
 
-  const assignedHero = assignedRows
-    .filter((row) => row.workflow && row.workflow.id)
-    .slice(0, 3)
-    .map<ClientOverviewAssignedWorkflow>((row) => {
-      const workflow = row.workflow!;
-      return {
-        id: workflow.id,
-        name: workflow.name ?? "Untitled workflow",
-        description:
-          workflow.public_desc?.trim() ?? "No description provided.",
-        iconUrl: workflow.icon_url ?? null,
-        isPublished: Boolean(workflow.is_published),
-        runHref: `/workflows/${workflow.id}/run`,
-        detailsHref: `/workflows/${workflow.id}`,
-      };
-    });
+  const assignedHero = await Promise.all(
+    assignedRows
+      .filter((row) => row.workflow && row.workflow.id)
+      .slice(0, 3)
+      .map(async (row): Promise<ClientOverviewAssignedWorkflow> => {
+        const workflow = row.workflow!;
+        const iconUrl = await resolveWorkflowIconUrl(workflow.icon_url ?? null);
+        return {
+          id: workflow.id,
+          name: workflow.name ?? "Untitled workflow",
+          description:
+            workflow.public_desc?.trim() ?? "No description provided.",
+          iconUrl,
+          isPublished: Boolean(workflow.is_published),
+          runHref: `/workflows/${workflow.id}/run`,
+          detailsHref: `/workflows/${workflow.id}`,
+        };
+      }),
+  );
 
   const total30 = total30Result.count ?? 0;
   const success30 = success30Result.count ?? 0;
@@ -385,22 +389,25 @@ export async function getClientOverviewData(): Promise<ClientOverviewData> {
     throw discoverError;
   }
 
-  const discover = (discoverData ?? [])
-    .filter(
-      (row: DiscoverWorkflowRow & { is_published?: boolean | null }) =>
-        Boolean(row) && !assignedWorkflowIds.includes(row.id),
-    )
-    .slice(0, 10)
-    .map<ClientOverviewDiscoverItem>((row) => {
-      const req = requestMap.get(row.id);
-      return {
-        id: row.id,
-        name: row.name ?? "Untitled workflow",
-        description: row.public_desc?.trim() ?? "Discover what's possible.",
-        iconUrl: row.icon_url ?? null,
-        requestStatus: req?.status ?? null,
-      };
-    });
+  const discover = await Promise.all(
+    (discoverData ?? [])
+      .filter(
+        (row: DiscoverWorkflowRow & { is_published?: boolean | null }) =>
+          Boolean(row) && !assignedWorkflowIds.includes(row.id),
+      )
+      .slice(0, 10)
+      .map(async (row): Promise<ClientOverviewDiscoverItem> => {
+        const req = requestMap.get(row.id);
+        const iconUrl = await resolveWorkflowIconUrl(row.icon_url ?? null);
+        return {
+          id: row.id,
+          name: row.name ?? "Untitled workflow",
+          description: row.public_desc?.trim() ?? "Discover what's possible.",
+          iconUrl,
+          requestStatus: req?.status ?? null,
+        };
+      }),
+  );
 
   return {
     userName: profile.userName,

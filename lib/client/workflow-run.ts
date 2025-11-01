@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AccessRequestStatus } from "@/lib/access-requests/constants";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { parseJsonSchema, type JsonSchema } from "@/lib/schema/jsonschema";
+import { resolveWorkflowIconUrl } from "@/lib/storage/workflow-icons";
 
 import { getClientAccessContext } from "./access";
 import type { ClientProfile } from "./profile";
@@ -48,7 +49,7 @@ export interface WorkflowRunData {
   canRequest: boolean;
 }
 
-function mapWorkflow(row: WorkflowRow): WorkflowRunData["workflow"] {
+async function mapWorkflow(row: WorkflowRow): Promise<WorkflowRunData["workflow"]> {
   let inputSchema: JsonSchema | null = null;
 
   if (row.input_schema) {
@@ -60,6 +61,8 @@ function mapWorkflow(row: WorkflowRow): WorkflowRunData["workflow"] {
     }
   }
 
+  const iconUrl = await resolveWorkflowIconUrl(row.icon_url ?? null);
+
   return {
     id: row.id,
     name:
@@ -70,7 +73,7 @@ function mapWorkflow(row: WorkflowRow): WorkflowRunData["workflow"] {
       row.public_desc?.trim() && row.public_desc.length > 0
         ? row.public_desc
         : "No description provided yet.",
-    iconUrl: row.icon_url ?? null,
+    iconUrl,
     inputSchema,
     isPublished: Boolean(row.is_published),
     updatedAt: row.updated_at,
@@ -131,9 +134,11 @@ export async function getWorkflowRunData(
     (candidate) => candidate.workflowId === workflowId,
   ) ?? null;
 
+  const workflow = await mapWorkflow(workflowRow);
+
   return {
     profile: accessContext.profile,
-    workflow: mapWorkflow(workflowRow),
+    workflow,
     hasAccess: Boolean(assignment),
     assignedAt: assignment?.created_at ?? null,
     request: request

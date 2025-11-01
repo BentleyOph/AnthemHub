@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 let serviceRoleClient: SupabaseClient | null = null;
 
 function resolveServiceRoleEnv(): { supabaseUrl: string; serviceRoleKey: string } {
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
