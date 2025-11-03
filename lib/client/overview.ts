@@ -92,11 +92,11 @@ type DiscoverWorkflowRow = {
   icon_url: string | null;
 };
 
-type ExecutionWithEstimateRow = {
-  workflow: {
-    estimated_minutes_saved: number | null;
-  } | null;
-};
+// type ExecutionWithEstimateRow = {
+//   workflow: {
+//     estimated_minutes_saved: number | null;
+//   } | null;
+// };
 
 function computeDurationMs(
   startedAt: string,
@@ -130,10 +130,13 @@ function isMissingColumnError(
 }
 
 async function computeEstimatedTimeSavedMinutes(
-  supabase: SupabaseClient,
-  clientId: string,
-  sinceIso: string,
+  _supabase: SupabaseClient,
+  _clientId: string,
+  _sinceIso: string,
 ): Promise<number | null> {
+  // TODO: Re-enable once workflow.estimated_minutes_saved exists in production schema.
+  return null;
+  /*
   try {
     const { data, error } = await supabase
       .from("execution")
@@ -172,6 +175,7 @@ async function computeEstimatedTimeSavedMinutes(
     console.error("Unexpected failure while computing time saved", error);
     return null;
   }
+  */
 }
 
 export async function getClientOverviewData(): Promise<ClientOverviewData> {
