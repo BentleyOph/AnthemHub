@@ -32,6 +32,7 @@ const storagePatterns = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: storagePatterns,
   },
