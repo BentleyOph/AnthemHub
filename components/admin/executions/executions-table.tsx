@@ -230,7 +230,7 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
     });
   };
 
-  const toggleValue = (list: string[], value: string, enabled: boolean) => {
+  const toggleValue = <T extends string>(list: T[], value: T, enabled: boolean): T[] => {
     if (enabled) {
       return list.includes(value) ? list : [...list, value];
     }
@@ -238,17 +238,17 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
   };
 
   const onStatusToggle = (status: ExecutionStatus, checked: boolean) => {
-    const nextStatuses = toggleValue(filters.statuses, status, checked);
+    const nextStatuses = toggleValue<ExecutionStatus>(filters.statuses, status, checked);
     setFilters((prev) => ({ ...prev, statuses: nextStatuses }));
   };
 
   const onWorkflowToggle = (id: string, checked: boolean) => {
-    const nextWorkflows = toggleValue(filters.workflows, id, checked);
+    const nextWorkflows = toggleValue<string>(filters.workflows, id, checked);
     setFilters((prev) => ({ ...prev, workflows: nextWorkflows }));
   };
 
   const onClientToggle = (id: string, checked: boolean) => {
-    const nextClients = toggleValue(filters.clients, id, checked);
+    const nextClients = toggleValue<string>(filters.clients, id, checked);
     setFilters((prev) => ({ ...prev, clients: nextClients }));
   };
 

@@ -89,8 +89,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Use unknown here to match the incoming payload type and
-  // the zod validation result type without narrowing prematurely.
   let parsedInput: unknown = payload.input ?? {};
   try {
     const schema = workflowRow.input_schema

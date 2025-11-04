@@ -69,7 +69,7 @@ export const workflowUpsertSchema = z.object({
     .optional()
     .transform((value) => (value && value.length > 0 ? value : null)),
   n8nWebhookUrl: z.string().trim().url().max(2048),
-  inputSchema: z.union([z.string().trim().min(2), z.record(z.any())]),
+  inputSchema: z.union([z.string().trim().min(2), z.record(z.string(), z.any())]),
   isPublished: z.boolean().default(false),
 });
 

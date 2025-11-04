@@ -1,5 +1,6 @@
-import { IconChartDonutFilled, IconClock, IconHourglass, IconUsers } from "@tabler/icons-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestSingleResponse } from "@supabase/postgrest-js";
+import { IconChartDonutFilled, IconClock, IconHourglass, IconUsers } from "@tabler/icons-react";
 import { redirect } from "next/navigation";
 
 import { OverviewCards, type OverviewMetric } from "@/components/dashboard/overview-cards";
@@ -27,6 +28,14 @@ type AdminOverviewKpis = {
 
 type ExecutionRow = { started_at: string | null };
 type DailyAggregateRow = { day: string | null; total: number | string | null };
+type ExecutionDetailRow = {
+  id: string;
+  status: string | null;
+  started_at: string | null;
+  client_name: string | null;
+  workflow_name: string | null;
+};
+type RpcResult<T> = PostgrestSingleResponse<T>;
 
 const TIME_ZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 
@@ -175,10 +184,16 @@ function buildDailySeries(rows: DailyAggregateRow[], days: number, now = new Dat
     .map(([ts, executions]) => ({ ts: new Date(ts).toISOString(), executions }));
 }
 
+async function callRpc<T>(
+  admin: SupabaseClient,
+  fn: string,
+  args?: Record<string, unknown>,
+): Promise<RpcResult<T>> {
+  return (await admin.rpc(fn, args)) as RpcResult<T>;
+}
+
 async function fetchKpis(admin: SupabaseClient) {
-  const { data, error } = await admin
-    .rpc("get_admin_overview_kpis")
-    .returns<AdminOverviewKpis[]>();
+  const { data, error } = await callRpc<AdminOverviewKpis[]>(admin, "get_admin_overview_kpis");
 
   if (error) {
     console.error("Failed to load admin overview KPIs", error);
@@ -189,9 +204,9 @@ async function fetchKpis(admin: SupabaseClient) {
 }
 
 async function fetchTopWorkflows(admin: SupabaseClient): Promise<TopWorkflowItem[]> {
-  const { data, error } = await admin
-    .rpc("get_top_workflows", { limit_count: 5 })
-    .returns<Array<{ name: string | null; executions: number | string | null }>>();
+  const { data, error } = await callRpc<
+    Array<{ name: string | null; executions: number | string | null }>
+  >(admin, "get_top_workflows", { limit_count: 5 });
 
   if (error) {
     console.error("Failed to load top workflows", error);
@@ -207,9 +222,9 @@ async function fetchTopWorkflows(admin: SupabaseClient): Promise<TopWorkflowItem
 }
 
 async function fetchTopClients(admin: SupabaseClient): Promise<TopClientItem[]> {
-  const { data, error } = await admin
-    .rpc("get_top_clients", { limit_count: 5 })
-    .returns<Array<{ name: string | null; executions: number | string | null }>>();
+  const { data, error } = await callRpc<
+    Array<{ name: string | null; executions: number | string | null }>
+  >(admin, "get_top_clients", { limit_count: 5 });
 
   if (error) {
     console.error("Failed to load top clients", error);
@@ -225,17 +240,11 @@ async function fetchTopClients(admin: SupabaseClient): Promise<TopClientItem[]> 
 }
 
 async function fetchRecentExecutions(admin: SupabaseClient): Promise<RecentExecutionItem[]> {
-  const { data, error } = await admin
+  const { data, error } = (await admin
     .from("v_execution_details")
-    .select<{
-      id: string;
-      status: string | null;
-      started_at: string | null;
-      client_name: string | null;
-      workflow_name: string | null;
-    }>("id,status,started_at,client_name,workflow_name")
+    .select("id,status,started_at,client_name,workflow_name")
     .order("started_at", { ascending: false })
-    .limit(20);
+    .limit(20)) as PostgrestSingleResponse<ExecutionDetailRow[]>;
 
   if (error) {
     console.error("Failed to load recent executions", error);
@@ -257,29 +266,29 @@ async function fetchExecutionSeries(admin: SupabaseClient, now = new Date()): Pr
   const dailyCutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   dailyCutoff.setUTCDate(dailyCutoff.getUTCDate() - 29);
 
-  const [recentRows, dailyRowsResult] = await Promise.all([
-    admin
+  const [recentRowsResult, dailyRowsResult] = await Promise.all([
+    (await admin
       .from("execution")
-      .select<ExecutionRow>("started_at")
+      .select("started_at")
       .gte("started_at", dayCutoff.toISOString())
       .lte("started_at", now.toISOString())
-      .limit(5000),
-    admin
+      .limit(5000)) as PostgrestSingleResponse<ExecutionRow[]>,
+    (await admin
       .from("v_executions_daily")
-      .select<DailyAggregateRow>("day,total")
+      .select("day,total")
       .gte("day", dailyCutoff.toISOString())
-      .order("day", { ascending: true }),
+      .order("day", { ascending: true })) as PostgrestSingleResponse<DailyAggregateRow[]>,
   ]);
 
-  if (recentRows.error) {
-    console.error("Failed to load hourly execution series", recentRows.error);
+  if (recentRowsResult.error) {
+    console.error("Failed to load hourly execution series", recentRowsResult.error);
   }
 
   if (dailyRowsResult.error) {
     console.error("Failed to load daily execution series", dailyRowsResult.error);
   }
 
-  const daySeries = buildHourlySeries(recentRows.data ?? [], now);
+  const daySeries = buildHourlySeries(recentRowsResult.data ?? [], now);
   const dailyRows = dailyRowsResult.data ?? [];
 
   return {

@@ -28,7 +28,11 @@ export async function GET(request: NextRequest) {
       page: request.nextUrl.searchParams.get("page") ?? undefined,
       per_page: request.nextUrl.searchParams.get("per_page") ?? undefined,
       q: request.nextUrl.searchParams.get("q") ?? undefined,
-      status: request.nextUrl.searchParams.get("status") ?? undefined,
+      status: (request.nextUrl.searchParams.get("status") ?? undefined) as
+        | "ALL"
+        | "PUBLISHED"
+        | "DRAFT"
+        | undefined,
     });
 
     const result = await listWorkflows(params);

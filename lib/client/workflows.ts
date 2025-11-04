@@ -126,9 +126,7 @@ async function loadAssignedWorkflows(
     throw error;
   }
 
-  const assignedRows = (data ?? []).filter((row): row is AccessRow =>
-    Boolean(row?.workflow_id),
-  );
+  const assignedRows = (data ?? []) as unknown as AccessRow[];
 
   if (assignedRows.length === 0) {
     return [];

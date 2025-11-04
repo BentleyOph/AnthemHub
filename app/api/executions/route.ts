@@ -3,7 +3,13 @@ import { ZodError } from "zod";
 
 import { AccessDeniedError } from "@/lib/auth/guards";
 import { requireAdminSession } from "@/lib/auth/require-admin";
-import { listExecutions, normalizeExecutionListParams } from "@/lib/admin/executions/data";
+import {
+  EXECUTION_STATUSES,
+  type ExecutionStatus,
+  type ExecutionSort,
+  listExecutions,
+  normalizeExecutionListParams,
+} from "@/lib/admin/executions/data";
 
 function parseListQuery(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -12,12 +18,17 @@ function parseListQuery(request: NextRequest) {
     page: searchParams.get("page") ?? undefined,
     per_page: searchParams.get("per_page") ?? undefined,
     workflow_id: searchParams.getAll("workflow_id") ?? undefined,
-    status: searchParams.getAll("status") ?? undefined,
+    status: (() => {
+      const filteredStatuses = searchParams
+        .getAll("status")
+        .filter((value): value is ExecutionStatus => EXECUTION_STATUSES.includes(value as ExecutionStatus));
+      return filteredStatuses.length > 0 ? filteredStatuses : undefined;
+    })(),
     client_id: searchParams.getAll("client_id") ?? undefined,
     from: searchParams.get("from") ?? undefined,
     to: searchParams.get("to") ?? undefined,
     q: searchParams.get("q") ?? undefined,
-    sort: searchParams.get("sort") ?? undefined,
+    sort: (searchParams.get("sort") ?? undefined) as ExecutionSort | undefined,
   } satisfies Record<string, unknown>;
 
   try {

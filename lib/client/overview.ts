@@ -307,7 +307,7 @@ export async function getClientOverviewData(): Promise<ClientOverviewData> {
     throw recentExecutionsResult.error;
   }
 
-  const assignedRows = (assignedResult.data ?? []) as AssignedWorkflowRow[];
+  const assignedRows = (assignedResult.data ?? []) as unknown as AssignedWorkflowRow[];
   const assignedWorkflowCount = assignedRows.length;
   const assignedWorkflowIds = assignedRows
     .map((row) => row.workflow_id)
@@ -342,8 +342,9 @@ export async function getClientOverviewData(): Promise<ClientOverviewData> {
   const lastRunAt = (lastRunResult as PostgrestSingleResponse<{ started_at: string }>).data
     ?.started_at ?? null;
 
-  const recentExecutions = (recentExecutionsResult.data ?? []).map(
-    (row: RecentExecutionRow): ClientOverviewExecution => ({
+  const recentRows = (recentExecutionsResult.data ?? []) as unknown as RecentExecutionRow[];
+  const recentExecutions = recentRows.map(
+    (row): ClientOverviewExecution => ({
       id: row.id,
       workflowId: row.workflow_id,
       workflowName: row.workflow?.name ?? "Unnamed workflow",
