@@ -12,17 +12,33 @@ type PageProps = {
 };
 
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
+const WORKFLOW_STATUS_FILTERS = ["ALL", "PUBLISHED", "DRAFT"] as const;
+type WorkflowStatusFilter = (typeof WORKFLOW_STATUS_FILTERS)[number];
+const WORKFLOW_STATUS_SET = new Set<WorkflowStatusFilter>(WORKFLOW_STATUS_FILTERS);
 
 function isPromiseLike<T>(value: Promise<T> | T): value is Promise<T> {
   return typeof value === "object" && value !== null && "then" in value;
 }
 
+function firstValue(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+}
+
+function firstStatus(value: string | string[] | undefined): WorkflowStatusFilter | undefined {
+  const raw = firstValue(value);
+  if (!raw) return undefined;
+  return WORKFLOW_STATUS_SET.has(raw as WorkflowStatusFilter) ? (raw as WorkflowStatusFilter) : undefined;
+}
+
 function coerceParams(searchParams?: SearchParams): WorkflowListParams {
   return {
-    page: searchParams?.page,
-    per_page: searchParams?.per_page,
-    q: searchParams?.q,
-    status: searchParams?.status,
+    page: firstValue(searchParams?.page),
+    per_page: firstValue(searchParams?.per_page),
+    q: firstValue(searchParams?.q),
+    status: firstStatus(searchParams?.status),
   };
 }
 

@@ -14,7 +14,7 @@ const querySchema = z.object({
   per_page: z.coerce.number().int().positive().max(200).default(50),
 });
 
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await requireAdminSession();
   } catch (error) {
@@ -26,7 +26,8 @@ export async function GET(request: NextRequest, context: { params: { id: string 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsedParams = pathParamsSchema.safeParse(context.params);
+  const params = await context.params;
+  const parsedParams = pathParamsSchema.safeParse(params);
   if (!parsedParams.success) {
     return NextResponse.json({ error: "Invalid execution id." }, { status: 400 });
   }

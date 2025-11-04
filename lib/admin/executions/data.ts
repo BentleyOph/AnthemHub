@@ -19,6 +19,11 @@ export const EXECUTION_SORT_OPTIONS = [
 export type ExecutionStatus = (typeof EXECUTION_STATUSES)[number];
 export type ExecutionSort = (typeof EXECUTION_SORT_OPTIONS)[number];
 
+// Type guard exported in case callers want to narrow user input before parsing
+export function isExecutionSort(value: unknown): value is ExecutionSort {
+  return typeof value === "string" && (EXECUTION_SORT_OPTIONS as readonly string[]).includes(value);
+}
+
 export const executionListSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   per_page: z.coerce
@@ -269,7 +274,8 @@ export async function listExecutions(
   }
 
   const total = count ?? 0;
-  const items: ExecutionListItem[] = (data ?? []).map((row: ExecutionRow) => ({
+  const rows = (data ?? []) as unknown as ExecutionRow[];
+  const items: ExecutionListItem[] = rows.map((row) => ({
     id: row.id,
     status: row.status,
     source: row.source ?? "USER",
@@ -341,22 +347,27 @@ export async function getExecutionDetail(id: string): Promise<ExecutionDetail | 
     return null;
   }
 
+  const row = data as unknown as ExecutionRow & {
+    input_payload: unknown;
+    output_payload: unknown;
+  };
+
   return {
-    id: data.id,
-    status: data.status,
-    source: data.source,
-    workflowId: data.workflow_id,
-    workflowName: data.workflow?.name ?? "Unknown workflow",
-    clientId: data.client_id,
-    clientName: data.client?.name ?? "Unknown client",
-    startedAt: data.started_at,
-    finishedAt: data.finished_at,
-    durationMs: computeDurationMs(data),
-    resultFileUrl: data.result_file_url,
-    errorMessage: data.error_message,
-    n8nRunId: data.n8n_run_id,
-    inputPayload: data.input_payload,
-    outputPayload: data.output_payload,
+    id: row.id,
+    status: row.status,
+    source: row.source,
+    workflowId: row.workflow_id,
+    workflowName: row.workflow?.name ?? "Unknown workflow",
+    clientId: row.client_id,
+    clientName: row.client?.name ?? "Unknown client",
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    durationMs: computeDurationMs(row),
+    resultFileUrl: row.result_file_url,
+    errorMessage: row.error_message,
+    n8nRunId: row.n8n_run_id,
+    inputPayload: row.input_payload,
+    outputPayload: row.output_payload,
   };
 }
 
@@ -391,7 +402,8 @@ export async function listExecutionEvents(
   }
 
   const total = count ?? 0;
-  const items: ExecutionEventItem[] = (data ?? []).map((row: ExecutionEventRow) => ({
+  const rows = (data ?? []) as unknown as ExecutionEventRow[];
+  const items: ExecutionEventItem[] = rows.map((row) => ({
     id: row.id,
     executionId: row.execution_id,
     timestamp: row.timestamp,
@@ -466,11 +478,11 @@ export function parseExecutionListSearchParams(
     page: toValue(searchParams.page),
     per_page: toValue(searchParams.per_page),
     workflow_id: toArray(searchParams.workflow_id),
-    status: toArray(searchParams.status),
+    status: toArray(searchParams.status) as unknown as ExecutionStatus[] | undefined,
     client_id: toArray(searchParams.client_id),
     from: toValue(searchParams.from),
     to: toValue(searchParams.to),
     q: toValue(searchParams.q),
-    sort: toValue(searchParams.sort),
+    sort: toValue(searchParams.sort) as unknown as ExecutionSort | undefined,
   });
 }

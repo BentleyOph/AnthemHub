@@ -203,7 +203,8 @@ export async function listAccessRequests(
   }
 
   const total = count ?? 0;
-  const items: AccessRequestListItem[] = (data ?? []).map((row: AccessRequestRow) => ({
+  const rows = (data ?? []) as unknown as AccessRequestRow[];
+  const items: AccessRequestListItem[] = rows.map((row) => ({
     id: row.id,
     status: normalizeStatus(row.status),
     note: row.note ?? null,

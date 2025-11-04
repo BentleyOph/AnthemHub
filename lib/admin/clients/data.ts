@@ -423,21 +423,24 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
   const successExecutions = executionsSuccessResult.count ?? 0;
   const successRate = totalExecutions > 0 ? (successExecutions / totalExecutions) * 100 : 0;
 
-  const assignedWorkflows = (accessResult.data ?? []).map((row: ClientAccessRow) => ({
+  const assignedRows = (accessResult.data ?? []) as unknown as ClientAccessRow[];
+  const assignedWorkflows = assignedRows.map((row) => ({
     id: row.workflow?.id ?? row.workflow_id,
     name: row.workflow?.name ?? "Unnamed workflow",
     isPublished: Boolean(row.workflow?.is_published),
     assignedAt: row.created_at,
   }));
 
-  const assignableWorkflows = (workflowsResult.data ?? [])
-    .filter((row: WorkflowOptionRow) => row.is_published)
-    .map((row: WorkflowOptionRow) => ({
+  const workflowRows = (workflowsResult.data ?? []) as unknown as WorkflowOptionRow[];
+  const assignableWorkflows = workflowRows
+    .filter((row) => row.is_published)
+    .map((row) => ({
       id: row.id,
       name: row.name ?? "Unnamed workflow",
     }));
 
-  const recentExecutions = (recentExecutionsResult.data ?? []).map((row: ExecutionHistoryRow) => ({
+  const recentRows = (recentExecutionsResult.data ?? []) as unknown as ExecutionHistoryRow[];
+  const recentExecutions = recentRows.map((row) => ({
     id: row.id,
     status: row.status,
     workflowId: row.workflow_id,

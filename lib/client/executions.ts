@@ -189,7 +189,7 @@ export async function getClientExecutions(options?: ClientExecutionListOptions):
     throw error;
   }
 
-  const rows = (data ?? []).filter((row): row is ExecutionRow => Boolean(row?.id));
+  const rows = (data ?? []) as unknown as ExecutionRow[];
 
   const executions = rows.map<ClientExecutionListItem>((row) => ({
     id: row.id,

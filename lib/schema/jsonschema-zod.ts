@@ -32,8 +32,10 @@ function buildEnumSchema(values: unknown[]): ZodTypeAny {
   if (literals.length === 1) {
     return literals[0] as ZodTypeAny;
   }
-
-  return z.union(literals as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]);
+  if (literals.length >= 2) {
+    return z.union(literals as unknown as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]);
+  }
+  return z.any();
 }
 
 function convertSchema(schema: JsonSchema): ZodTypeAny {
@@ -118,9 +120,7 @@ function convertSchema(schema: JsonSchema): ZodTypeAny {
       }
 
       if (type === "integer") {
-        numberSchema = numberSchema.transform((value) =>
-          Number.isInteger(value) ? value : Math.trunc(value),
-        );
+        numberSchema = numberSchema.int();
       }
 
       return numberSchema;
@@ -212,12 +212,12 @@ function deriveDefault(schema: JsonSchema | null | undefined): unknown {
   }
 }
 
-export function jsonSchemaDefaultValues(schema: JsonSchema | null | undefined) {
+export function jsonSchemaDefaultValues(schema: JsonSchema | null | undefined): Record<string, unknown> {
   const defaults = deriveDefault(schema);
   if (defaults && typeof defaults === "object" && !Array.isArray(defaults)) {
-    return defaults;
+    return defaults as Record<string, unknown>;
   }
-  return {};
+  return {} as Record<string, unknown>;
 }
 
 export function setDeepValue(

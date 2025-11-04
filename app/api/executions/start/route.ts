@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let parsedInput = payload.input ?? {};
+  let parsedInput: unknown = payload.input ?? {};
   try {
     const schema = workflowRow.input_schema
       ? parseJsonSchema(workflowRow.input_schema)

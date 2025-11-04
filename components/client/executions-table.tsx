@@ -16,6 +16,7 @@ import type {
 } from "@/lib/client/executions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
 import {
   Table,
   TableBody,
@@ -30,7 +31,7 @@ const STATUS_META: Record<
   {
     label: string;
     variant: "default" | "secondary" | "destructive" | "outline";
-    icon: JSX.Element | null;
+    icon: ReactNode;
   }
 > = {
   SUCCESS: {
@@ -191,4 +192,3 @@ export function ClientExecutionsTable({ items, timezone }: ClientExecutionsTable
     </div>
   );
 }
-
