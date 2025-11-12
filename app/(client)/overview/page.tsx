@@ -171,7 +171,7 @@ function MetricsSection({ metrics }: { metrics: ClientOverviewMetrics }) {
       : `${formatPercentage(metrics.successRate30d)}%`;
   const successRateHint =
     metrics.successRate30d !== null && metrics.successRate30d > 0
-      ? "Keep momentum going"
+      ? "Keep the momentum going"
       : "Run a workflow to start tracking";
 
   const metricCards = [
@@ -378,7 +378,7 @@ function UnassignedState() {
             <Link href="/catalog">Explore catalog</Link>
           </Button>
           <Button size="sm" variant="ghost" asChild>
-            <Link href="mailto:support@anthem.example">Contact support</Link>
+            <Link href="mailto:tobias@anthemagency.ai">Contact support</Link>
           </Button>
         </div>
       </CardFooter>

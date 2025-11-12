@@ -181,7 +181,7 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
           <CardHeader>
             <CardTitle>Input summary</CardTitle>
             <CardDescription>
-              Saved snapshot of the values provided when starting this run.
+              Values provided when starting this run.
             </CardDescription>
           </CardHeader>
           <CardContent>
