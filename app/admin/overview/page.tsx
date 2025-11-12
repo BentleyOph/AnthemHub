@@ -176,7 +176,9 @@ function buildDailySeries(rows: DailyAggregateRow[], days: number, now = new Dat
 }
 
 async function fetchKpis(admin: SupabaseClient) {
-  const { data, error } = await admin.rpc<AdminOverviewKpis[]>("get_admin_overview_kpis");
+  const { data, error } = await admin
+    .rpc("get_admin_overview_kpis")
+    .returns<AdminOverviewKpis[]>();
 
   if (error) {
     console.error("Failed to load admin overview KPIs", error);
@@ -187,10 +189,9 @@ async function fetchKpis(admin: SupabaseClient) {
 }
 
 async function fetchTopWorkflows(admin: SupabaseClient): Promise<TopWorkflowItem[]> {
-  const { data, error } = await admin.rpc<Array<{ name: string | null; executions: number | string | null }>>(
-    "get_top_workflows",
-    { limit_count: 5 },
-  );
+  const { data, error } = await admin
+    .rpc("get_top_workflows", { limit_count: 5 })
+    .returns<Array<{ name: string | null; executions: number | string | null }>>();
 
   if (error) {
     console.error("Failed to load top workflows", error);
@@ -206,10 +207,9 @@ async function fetchTopWorkflows(admin: SupabaseClient): Promise<TopWorkflowItem
 }
 
 async function fetchTopClients(admin: SupabaseClient): Promise<TopClientItem[]> {
-  const { data, error } = await admin.rpc<Array<{ name: string | null; executions: number | string | null }>>(
-    "get_top_clients",
-    { limit_count: 5 },
-  );
+  const { data, error } = await admin
+    .rpc("get_top_clients", { limit_count: 5 })
+    .returns<Array<{ name: string | null; executions: number | string | null }>>();
 
   if (error) {
     console.error("Failed to load top clients", error);
