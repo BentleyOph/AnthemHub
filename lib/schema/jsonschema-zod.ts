@@ -1,4 +1,4 @@
-import { z, type ZodTypeAny } from "zod";
+import { z, type ZodType } from "zod";
 
 import type { JsonSchema } from "@/lib/schema/jsonschema";
 
@@ -13,7 +13,7 @@ function resolveType(schema: JsonSchema): string | undefined {
   return type;
 }
 
-function buildEnumSchema(values: unknown[]): ZodTypeAny {
+function buildEnumSchema(values: unknown[]): ZodType {
   if (values.length === 0) {
     return z.any();
   }
@@ -29,14 +29,21 @@ function buildEnumSchema(values: unknown[]): ZodTypeAny {
   }
 
   const literals = values.map((value) => z.literal(value as never));
+  if (literals.length === 0) {
+    // Should be unreachable due to earlier guard, but keeps types happy
+    return z.never();
+  }
   if (literals.length === 1) {
-    return literals[0] as ZodTypeAny;
+    return literals[0];
   }
 
-  return z.union(literals as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]);
+  const [first, second, ...rest] = literals;
+  return z.union([first, second, ...rest] as [z.ZodType, z.ZodType, ...z.ZodType[]]);
 }
 
-function convertSchema(schema: JsonSchema): ZodTypeAny {
+
+// Recursively converts a JSON Schema to a Zod schema
+function convertSchema(schema: JsonSchema): ZodType {
   if (schema.enum && schema.enum.length > 0) {
     return buildEnumSchema(schema.enum);
   }
@@ -52,7 +59,7 @@ function convertSchema(schema: JsonSchema): ZodTypeAny {
     case undefined: {
       const properties = schema.properties ?? {};
       const required = new Set(schema.required ?? []);
-      const shape: Record<string, ZodTypeAny> = {};
+      const shape: Record<string, ZodType> = {};
 
       for (const [key, value] of Object.entries(properties)) {
         const propertySchema = convertSchema(value);
@@ -64,7 +71,7 @@ function convertSchema(schema: JsonSchema): ZodTypeAny {
       if (schema.additionalProperties === false) {
         objectSchema = objectSchema.strict();
       } else {
-        objectSchema = objectSchema.passthrough();
+        objectSchema = z.looseObject(objectSchema.shape);
       }
 
       return objectSchema;
@@ -118,7 +125,7 @@ function convertSchema(schema: JsonSchema): ZodTypeAny {
       }
 
       if (type === "integer") {
-        numberSchema = numberSchema.transform((value) =>
+        return numberSchema.transform((value) =>
           Number.isInteger(value) ? value : Math.trunc(value),
         );
       }
@@ -160,9 +167,9 @@ function convertSchema(schema: JsonSchema): ZodTypeAny {
   }
 }
 
-export function jsonSchemaToZod(schema: JsonSchema | null | undefined): ZodTypeAny {
+export function jsonSchemaToZod(schema: JsonSchema | null | undefined): ZodType {
   if (!schema) {
-    return z.object({}).passthrough();
+    return z.looseObject({});
   }
 
   return convertSchema(schema);
@@ -212,12 +219,14 @@ function deriveDefault(schema: JsonSchema | null | undefined): unknown {
   }
 }
 
-export function jsonSchemaDefaultValues(schema: JsonSchema | null | undefined) {
+export function jsonSchemaDefaultValues(
+  schema: JsonSchema | null | undefined,
+): Record<string, unknown> {
   const defaults = deriveDefault(schema);
   if (defaults && typeof defaults === "object" && !Array.isArray(defaults)) {
-    return defaults;
+    return defaults as Record<string, unknown>;
   }
-  return {};
+  return {} as Record<string, unknown>;
 }
 
 export function setDeepValue(
