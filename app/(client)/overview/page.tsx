@@ -113,7 +113,7 @@ function AssignedWorkflowsSection({
           {assigned.map((workflow) => (
             <Card
               key={workflow.id}
-              className="flex h-full flex-col justify-between border border-primary/10 bg-gradient-to-br from-primary/5 via-card to-card shadow-sm"
+              className="flex h-full flex-col justify-between border border-primary/10 bg-linear-to-br from-primary/5 via-card to-card shadow-sm"
             >
               <CardHeader className="flex flex-row items-start gap-3 space-y-0">
                 <WorkflowIcon iconUrl={workflow.iconUrl} name={workflow.name} />
