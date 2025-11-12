@@ -6,7 +6,7 @@ import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 // Progress update: stage + message, no status
 const progressUpdateSchema = z.object({
-  execution_id: z.string().uuid(),
+  execution_id: z.uuid(),
   n8n_run_id: z.string().trim().min(1).optional(),
   stage: z.string().trim().min(1).max(255),
   message: z.unknown().optional(),
@@ -15,21 +15,21 @@ const progressUpdateSchema = z.object({
 
 // Success update: status=SUCCESS + output
 const successUpdateSchema = z.object({
-  execution_id: z.string().uuid(),
+  execution_id: z.uuid(),
   n8n_run_id: z.string().trim().min(1).optional(),
   status: z.literal("SUCCESS"),
   output: z.unknown(), // Allow any output structure
-  result_file_url: z.string().url().optional(),
-  finished_at: z.string().datetime({ offset: true }).optional(),
+  result_file_url: z.url().optional(),
+  finished_at: z.iso.datetime({ offset: true }).optional(),
 });
 
 // Error update: status=ERROR + error message
 const errorUpdateSchema = z.object({
-  execution_id: z.string().uuid(),
+  execution_id: z.uuid(),
   n8n_run_id: z.string().trim().min(1).optional(),
   status: z.literal("ERROR"),
   error: z.string().max(1024),
-  finished_at: z.string().datetime({ offset: true }).optional(),
+  finished_at: z.iso.datetime({ offset: true }).optional(),
 });
 
 const callbackSchema = z.discriminatedUnion("status", [
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
   const validation = callbackSchema.safeParse(parsedJson);
   if (!validation.success) {
     return NextResponse.json(
-      { error: "Invalid payload.", details: validation.error.flatten() },
+      { error: "Invalid payload.", details: z.treeifyError(validation.error) },
       { status: 422 },
     );
   }

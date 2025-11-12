@@ -10,7 +10,7 @@ import { getRedisClient } from "@/lib/redis/client";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const requestSchema = z.object({
-  workflowId: z.string().uuid(),
+  workflowId: z.uuid(),
   input: z.unknown().optional(),
 });
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid payload.", details: error.flatten() },
+        { error: "Invalid payload.", details: z.treeifyError(error) },
         { status: 422 },
       );
     }
@@ -89,7 +89,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let parsedInput = payload.input ?? {};
+  // Use unknown here to match the incoming payload type and
+  // the zod validation result type without narrowing prematurely.
+  let parsedInput: unknown = payload.input ?? {};
   try {
     const schema = workflowRow.input_schema
       ? parseJsonSchema(workflowRow.input_schema)
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
     const result = validator.safeParse(parsedInput ?? {});
     if (!result.success) {
       return NextResponse.json(
-        { error: "Validation failed.", details: result.error.flatten() },
+        { error: "Validation failed.", details: z.treeifyError(result.error) },
         { status: 422 },
       );
     }
