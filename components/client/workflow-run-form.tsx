@@ -129,6 +129,7 @@ export function WorkflowRunForm({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [defaults]);
 
+  // A utility function to clear errors for a specific field prefix
   function clearErrorsForPrefix(prefix: string) {
     setErrors((prev) => {
       const entries = Object.entries(prev);
