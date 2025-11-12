@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { ReactNode, type CSSProperties } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -77,3 +78,26 @@ export default async function AdminLayout({
     </SidebarProvider>
   );
 }
+
+export const metadata: Metadata = {
+  title: "Anthem Client /admin Portal",
+  description:
+    "Administrator portal for managing clients, workflows, executions, and access controls.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  openGraph: {
+    title: "Anthem admin Portal",
+    description:
+      "Administrator portal for managing clients, workflows, executions, and access controls.",
+    type: "website",
+    images: [
+      {
+        url: "/anthem_agency_logo.jpeg",
+        alt: "Anthem Admin Portal",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/anthem_agency_logo.jpeg"],
+  },
+};
