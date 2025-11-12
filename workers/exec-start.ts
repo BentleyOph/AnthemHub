@@ -10,7 +10,7 @@ import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 const supabase = getSupabaseServiceRoleClient();
 
-const REQUEST_TIMEOUT_MS = 120_000;
+const REQUEST_TIMEOUT_MS = 600_000;
 
 async function handleExecution(job: Job<ExecutionJob>) {
   const { executionId, workflowId, clientId, input, callbackUrl } = job.data;
