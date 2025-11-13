@@ -37,7 +37,7 @@ function buildEnumSchema(values: unknown[]): ZodType {
     return literals[0];
   }
   if (literals.length >= 2) {
-    return z.union(literals as unknown as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]);
+    return z.union(literals as unknown as [ZodType, ZodType, ...ZodType[]]);
   }
   return z.any();
 }
