@@ -7,6 +7,7 @@ import type {
 } from "bullmq";
 
 export const EXECUTION_QUEUE_NAME = "execution-start";
+export const SCHEDULE_QUEUE_NAME = "workflow-schedule";
 
 export interface ExecutionJob {
   executionId: string;
@@ -15,6 +16,10 @@ export interface ExecutionJob {
   input: Record<string, unknown>;
   callbackUrl: string;
   startedByUserId: string;
+}
+
+export interface ScheduleJob {
+  scheduleId: string;
 }
 
 export function resolveRedisConnection(): ConnectionOptions {
@@ -62,6 +67,8 @@ export function createExecutionQueue(
 
 let executionQueueInstance: Queue<ExecutionJob> | null = null;
 let executionWorkerInstance: Worker<ExecutionJob> | null = null;
+let scheduleQueueInstance: Queue<ScheduleJob> | null = null;
+let scheduleWorkerInstance: Worker<ScheduleJob> | null = null;
 
 export function getExecutionQueue(): Queue<ExecutionJob> {
   if (!executionQueueInstance) {
@@ -104,4 +111,42 @@ export function getExecutionWorker(
   }
 
   return executionWorkerInstance;
+}
+
+export function getScheduleQueue(): Queue<ScheduleJob> {
+  if (!scheduleQueueInstance) {
+    const connection = resolveRedisConnection();
+    scheduleQueueInstance = new Queue<ScheduleJob>(SCHEDULE_QUEUE_NAME, {
+      connection,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: {
+          age: 86_400,
+          count: 500,
+        },
+      },
+    });
+
+  }
+
+  return scheduleQueueInstance;
+}
+
+export function createScheduleWorker(
+  processor: Processor<ScheduleJob, unknown, string>,
+  options: Partial<WorkerOptions> = {},
+): Worker<ScheduleJob> {
+  if (!scheduleWorkerInstance) {
+    const connection = options.connection ?? resolveRedisConnection();
+    scheduleWorkerInstance = new Worker<ScheduleJob>(
+      SCHEDULE_QUEUE_NAME,
+      processor,
+      {
+        ...options,
+        connection,
+      },
+    );
+  }
+
+  return scheduleWorkerInstance;
 }

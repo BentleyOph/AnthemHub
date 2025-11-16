@@ -49,7 +49,8 @@ async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
     notFound();
   }
 
-  const { workflow, hasAccess, request, assignedAt, profile, canRequest } = data;
+  const { workflow, hasAccess, request, assignedAt, profile, canRequest, presets } =
+    data;
 
   return (
     <div className="flex flex-col gap-8">
@@ -100,6 +101,7 @@ async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
             assignedAt={assignedAt}
             request={request}
           />
+          <SchedulingSummary presets={presets} />
         </CardHeader>
       </Card>
 
@@ -202,6 +204,50 @@ function MetadataList({
         </div>
       ) : null}
     </dl>
+  );
+}
+
+function SchedulingSummary({
+  presets,
+}: {
+  presets: WorkflowRunData["presets"];
+}) {
+  const entries = presets.flatMap((preset) =>
+    preset.schedules.map((schedule) => ({
+      presetName: preset.name,
+      schedule,
+    })),
+  );
+
+  if (entries.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+        This workflow is not scheduled. Use the form below to run it on-demand.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-1.5">
+      <div className="text-foreground font-medium text-sm">Scheduled runs</div>
+      {entries.map(({ presetName, schedule }) => (
+        <div
+          key={schedule.id}
+          className="flex flex-wrap items-center gap-2"
+        >
+          <span className="font-medium text-foreground">{presetName}</span>
+          <span>·</span>
+          <span>{schedule.name}</span>
+          <span>·</span>
+          <span>
+            next:{" "}
+            {schedule.nextRunAt
+              ? formatDate(schedule.nextRunAt) ?? "pending"
+              : "pending"}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
