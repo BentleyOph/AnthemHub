@@ -29,7 +29,7 @@ const data = {
   user: {
     name: "Admin",
     email: "admin@example.com",
-    avatar: "/next.svg",
+    avatar: "/anthem_agency_logo.jpeg",
   },
   navMain: [
     {
