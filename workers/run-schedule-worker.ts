@@ -14,7 +14,13 @@ import {
 } from "@/lib/queue";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
-const supabase = getSupabaseServiceRoleClient();
+let supabase: ReturnType<typeof getSupabaseServiceRoleClient> | null = null;
+
+try {
+  supabase = getSupabaseServiceRoleClient();
+} catch (error) {
+  console.error("[schedule-worker] Failed to initialize Supabase client", error);
+}
 
 type ScheduleRow = {
   id: string;
@@ -75,6 +81,13 @@ function normalizeJobInput(
 
 async function processScheduleJob(job: Job<ScheduleJob>) {
   const { scheduleId } = job.data;
+
+  if (!supabase) {
+    console.error("[schedule-worker] Supabase client not initialized", {
+      scheduleId,
+    });
+    return;
+  }
 
   const { data: schedule, error } = await supabase
     .from("workflow_schedule")
