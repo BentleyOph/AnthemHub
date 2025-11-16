@@ -466,16 +466,16 @@ export async function updateWorkflowSchedule(
       existing.cron_expr !== payload.cronExpr ||
       existing.timezone !== payload.timezone);
 
+  const nextRunAt = payload.isActive
+    ? computeNextRunAt(payload.cronExpr, payload.timezone)
+    : null;
+
   if (
     existing.repeat_job_key &&
     (!payload.isActive || needsNewRepeatJob)
   ) {
     await removeScheduleJob(existing.repeat_job_key);
   }
-
-  const nextRunAt = payload.isActive
-    ? computeNextRunAt(payload.cronExpr, payload.timezone)
-    : null;
 
   const supabase = getSupabaseServiceRoleClient();
   const { data, error } = await supabase
