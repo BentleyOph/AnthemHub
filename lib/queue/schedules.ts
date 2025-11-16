@@ -18,6 +18,7 @@ export async function registerScheduleJob(args: {
     SCHEDULE_JOB_NAME,
     { scheduleId: args.scheduleId } satisfies ScheduleJob,
     {
+      jobId: args.scheduleId,
       repeat: {
         pattern: args.cronExpr,
         tz: args.timezone,
