@@ -33,6 +33,7 @@
     "bullmq": "^5.61.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cron-parser": "^5.4.0",
     "ioredis": "^5.8.2",
     "lucide-react": "^0.548.0",
     "next": "16.0.0",
