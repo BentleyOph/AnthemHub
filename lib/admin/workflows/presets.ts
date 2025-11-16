@@ -407,7 +407,7 @@ export async function createWorkflowSchedule(
         timezone: payload.timezone,
       });
 
-      const { data: updated } = await supabase
+      const { data: updated, error: repeatKeyUpdateError } = await supabase
         .from("workflow_schedule")
         .update({ repeat_job_key: repeatKey })
         .eq("id", data.id)
@@ -429,7 +429,11 @@ export async function createWorkflowSchedule(
           }
         >();
 
-      result = updated ?? data;
+      if (repeatKeyUpdateError || !updated) {
+        throw repeatKeyUpdateError ?? new Error("Failed to persist repeat job key.");
+      }
+
+      result = updated;
     } catch (scheduleError) {
       await supabase
         .from("workflow_schedule")
@@ -542,11 +546,11 @@ export async function updateWorkflowSchedule(
           }
         >();
 
-      if (updateError) {
-        throw updateError;
+      if (updateError || !updated) {
+        throw updateError ?? new Error("Failed to persist repeat job key.");
       }
 
-      result = updated ?? data;
+      result = updated;
     } catch (scheduleError) {
       await supabase
         .from("workflow_schedule")
