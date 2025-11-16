@@ -25,11 +25,45 @@ type AccessRow = {
   created_at: string;
 };
 
+type WorkflowPresetRow = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  workflow_schedule:
+    | Array<{
+        id: string;
+        name: string | null;
+        cron_expr: string;
+        timezone: string;
+        is_active: boolean | null;
+        last_run_at: string | null;
+        next_run_at: string | null;
+      }>
+    | null;
+};
+
 export interface WorkflowRunRequestState {
   id: string;
   status: AccessRequestStatus;
   createdAt: string;
   note: string | null;
+}
+
+export interface WorkflowRunSchedule {
+  id: string;
+  name: string;
+  cronExpr: string;
+  timezone: string;
+  isActive: boolean;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+}
+
+export interface WorkflowRunPreset {
+  id: string;
+  name: string;
+  description: string | null;
+  schedules: WorkflowRunSchedule[];
 }
 
 export interface WorkflowRunData {
@@ -47,6 +81,7 @@ export interface WorkflowRunData {
   assignedAt: string | null;
   request: WorkflowRunRequestState | null;
   canRequest: boolean;
+  presets: WorkflowRunPreset[];
 }
 
 async function mapWorkflow(row: WorkflowRow): Promise<WorkflowRunData["workflow"]> {
@@ -114,6 +149,7 @@ export async function getWorkflowRunData(
   }
 
   let assignment: AccessRow | null = null;
+  let presets: WorkflowRunPreset[] = [];
 
   if (accessContext.profile.clientId) {
     const { data: accessRow, error: accessError } = await supabase
@@ -128,6 +164,55 @@ export async function getWorkflowRunData(
     }
 
     assignment = accessRow ?? null;
+
+    const { data: presetRows, error: presetsError } = await supabase
+      .from("workflow_preset")
+      .select(
+        `
+          id,
+          name,
+          description,
+          workflow_schedule (
+            id,
+            name,
+            cron_expr,
+            timezone,
+            is_active,
+            last_run_at,
+            next_run_at
+          )
+        `,
+      )
+      .eq("workflow_id", workflowId)
+      .eq("client_id", accessContext.profile.clientId)
+      .order("created_at", { ascending: true })
+      .order("created_at", {
+        ascending: true,
+        referencedTable: "workflow_schedule",
+      });
+
+    if (presetsError) {
+      console.error("Failed to load workflow presets for client", presetsError);
+    } else {
+      presets = (presetRows ?? []).map((row: WorkflowPresetRow) => ({
+        id: row.id,
+        name:
+          row.name && row.name.trim().length > 0 ? row.name : "Preset",
+        description: row.description ?? null,
+        schedules: (row.workflow_schedule ?? []).map((schedule) => ({
+          id: schedule.id,
+          name:
+            schedule.name && schedule.name.trim().length > 0
+              ? schedule.name
+              : "Schedule",
+          cronExpr: schedule.cron_expr,
+          timezone: schedule.timezone,
+          isActive: Boolean(schedule.is_active),
+          lastRunAt: schedule.last_run_at,
+          nextRunAt: schedule.next_run_at,
+        })),
+      }));
+    }
   }
 
   const request = accessContext.accessRequests.find(
@@ -150,5 +235,6 @@ export async function getWorkflowRunData(
         }
       : null,
     canRequest: Boolean(accessContext.profile.clientId),
+    presets,
   };
 }
