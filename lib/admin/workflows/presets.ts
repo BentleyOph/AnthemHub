@@ -305,6 +305,30 @@ export async function updateWorkflowPreset(
 
 export async function deleteWorkflowPreset(presetId: string): Promise<void> {
   const supabase = getSupabaseServiceRoleClient();
+
+  const { data: schedules, error: scheduleLoadError } = await supabase
+    .from("workflow_schedule")
+    .select("repeat_job_key")
+    .eq("workflow_preset_id", presetId)
+    .not("repeat_job_key", "is", null)
+    .returns<
+      Array<{
+        repeat_job_key: string | null;
+      }>
+    >();
+
+  if (scheduleLoadError) {
+    throw scheduleLoadError;
+  }
+
+  if (schedules && schedules.length > 0) {
+    const keys = schedules
+      .map((schedule) => schedule.repeat_job_key)
+      .filter((key): key is string => Boolean(key));
+
+    await Promise.all(keys.map((key) => removeScheduleJob(key)));
+  }
+
   const { error } = await supabase
     .from("workflow_preset")
     .delete()
