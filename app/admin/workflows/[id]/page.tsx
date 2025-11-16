@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WorkflowSchedulingPanel } from "@/components/admin/workflows/workflow-scheduling-panel";
 import { getWorkflowDetail } from "@/lib/admin/workflows/data";
+import {
+  listWorkflowClientOptions,
+  listWorkflowPresetsForWorkflow,
+} from "@/lib/admin/workflows/presets";
 
 type RouteParams = {
   params: Promise<{ id: string }> | { id: string };
@@ -52,6 +57,11 @@ export default async function WorkflowDetailPage({ params }: RouteParams) {
   if (!workflow) {
     notFound();
   }
+
+  const [presets, clientOptions] = await Promise.all([
+    listWorkflowPresetsForWorkflow(workflowId),
+    listWorkflowClientOptions(workflowId),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -157,6 +167,23 @@ export default async function WorkflowDetailPage({ params }: RouteParams) {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Presets & schedules</CardTitle>
+          <CardDescription>
+            Define reusable inputs and timers for this workflow per client.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <WorkflowSchedulingPanel
+            workflowId={workflowId}
+            presets={presets}
+            clientOptions={clientOptions}
+            timeZone={TIMEZONE}
+          />
+        </CardContent>
+      </Card>
 
       <WorkflowForm mode="edit" workflow={workflow} showHeader={false} />
     </div>
