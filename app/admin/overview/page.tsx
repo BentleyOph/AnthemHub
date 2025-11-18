@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PostgrestSingleResponse } from "@supabase/postgrest-js";
-import { IconChartDonutFilled, IconClock, IconHourglass, IconUsers } from "@tabler/icons-react";
+import {
+  IconChartDonutFilled,
+  IconClock,
+  IconCurrencyDollar,
+  IconHourglass,
+  IconUsers,
+} from "@tabler/icons-react";
 import { redirect } from "next/navigation";
 
 import { OverviewCards, type OverviewMetric } from "@/components/dashboard/overview-cards";
@@ -16,6 +22,8 @@ import {
   WorkflowAverageDurations,
   type WorkflowAverageDurationItem,
 } from "@/components/dashboard/workflow-average-durations";
+import { WorkflowUsageBreakdown, type WorkflowUsageItem } from "@/components/dashboard/workflow-usage";
+import { formatCostAmount } from "@/lib/costs";
 import {
   getSupabaseServerClient,
   getSupabaseServiceRoleClient,
@@ -46,9 +54,25 @@ type ExecutionDetailRow = {
   client_name: string | null;
   workflow_name: string | null;
 };
+type UsageSummaryRow = {
+  total_cost: number | string | null;
+  execution_count: number | string | null;
+  average_cost: number | string | null;
+  currency: string | null;
+};
+type WorkflowUsageRow = {
+  workflow_id: string | null;
+  workflow_name: string | null;
+  total_cost: number | string | null;
+  execution_count: number | string | null;
+  average_cost: number | string | null;
+  currency: string | null;
+};
 type RpcResult<T> = PostgrestSingleResponse<T>;
 
 const TIME_ZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
+const USAGE_LOOKBACK_DAYS = 30;
+const WORKFLOW_USAGE_LIMIT = 6;
 
 const numberFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 0,
@@ -104,6 +128,19 @@ function toNumber(value: number | string | null | undefined): number {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+function toNumberOrNull(value: number | string | null | undefined): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
 }
 
 function formatInteger(value: number | string | null | undefined): string {
@@ -322,16 +359,91 @@ async function fetchExecutionSeries(admin: SupabaseClient, now = new Date()): Pr
   };
 }
 
+type UsageSummary = {
+  totalCost: number | null;
+  averageCost: number | null;
+  executionCount: number;
+  currency: string | null;
+};
+
+async function fetchUsageSummary(
+  admin: SupabaseClient,
+  from: Date,
+  to: Date,
+): Promise<UsageSummary | null> {
+  const { data, error } = await callRpc<UsageSummaryRow[]>(admin, "get_usage_cost_summary", {
+    p_from: from.toISOString(),
+    p_to: to.toISOString(),
+  });
+
+  if (error) {
+    console.error("Failed to load usage summary", error);
+    return null;
+  }
+
+  const row = data?.[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    totalCost: toNumberOrNull(row.total_cost),
+    averageCost: toNumberOrNull(row.average_cost),
+    executionCount: toNumber(row.execution_count ?? 0),
+    currency: row.currency ?? null,
+  };
+}
+
+async function fetchWorkflowUsage(
+  admin: SupabaseClient,
+  from: Date,
+  to: Date,
+  limit = WORKFLOW_USAGE_LIMIT,
+): Promise<WorkflowUsageItem[]> {
+  const { data, error } = await callRpc<WorkflowUsageRow[]>(
+    admin,
+    "get_workflow_usage_breakdown",
+    {
+      p_from: from.toISOString(),
+      p_to: to.toISOString(),
+      p_limit: limit,
+    },
+  );
+
+  if (error) {
+    console.error("Failed to load workflow usage breakdown", error);
+    return [];
+  }
+
+  return (data ?? []).map((row, index) => {
+    const name = row.workflow_name?.trim() ?? "";
+    return {
+      id: row.workflow_id ?? `workflow-${index}`,
+      name: name.length > 0 ? name : "Unknown workflow",
+      totalCost: toNumberOrNull(row.total_cost),
+      averageCost: toNumberOrNull(row.average_cost),
+      executions: toNumber(row.execution_count ?? 0),
+      currency: row.currency ?? null,
+    };
+  });
+}
+
 async function getOverviewData() {
   const admin = getSupabaseServiceRoleClient();
 
-  const [kpis, topWorkflows, topClients, recentExecutions, series] = await Promise.all([
-    fetchKpis(admin),
-    fetchTopWorkflows(admin),
-    fetchTopClients(admin),
-    fetchRecentExecutions(admin),
-    fetchExecutionSeries(admin),
-  ]);
+  const now = new Date();
+  const usageRangeStart = new Date(now.getTime() - USAGE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+
+  const [kpis, topWorkflows, topClients, recentExecutions, series, usageSummary, workflowUsage] =
+    await Promise.all([
+      fetchKpis(admin),
+      fetchTopWorkflows(admin),
+      fetchTopClients(admin),
+      fetchRecentExecutions(admin),
+      fetchExecutionSeries(admin, now),
+      fetchUsageSummary(admin, usageRangeStart, now),
+      fetchWorkflowUsage(admin, usageRangeStart, now),
+    ]);
 
   const workflowDurations: WorkflowAverageDurationItem[] = (kpis?.workflow_avg_execution_times ?? [])
     .map((row, index) => {
@@ -347,7 +459,15 @@ async function getOverviewData() {
     })
     .filter((item) => item.durationLabel !== "—");
 
+  const usageRangeLabel = `Last ${USAGE_LOOKBACK_DAYS} days`;
+
   const metrics: OverviewMetric[] = [
+    {
+      label: `Usage (${usageRangeLabel.toLowerCase()})`,
+      value: usageSummary ? formatCostAmount(usageSummary.totalCost, usageSummary.currency ?? undefined) : "—",
+      hint: usageSummary ? `${numberFormatter.format(usageSummary.executionCount)} executions` : undefined,
+      icon: <IconCurrencyDollar className="size-4" />,
+    },
     {
       label: "Total executions (today)",
       value: formatInteger(kpis?.executions_today ?? null),
@@ -377,13 +497,25 @@ async function getOverviewData() {
     recentExecutions,
     series,
     workflowDurations,
+    workflowUsage,
+    usageRangeLabel,
+    usageSummary,
   };
 }
 
 export default async function AdminOverviewPage() {
   await ensureAdminSession();
-  const { metrics, topWorkflows, topClients, recentExecutions, series, workflowDurations } =
-    await getOverviewData();
+  const {
+    metrics,
+    topWorkflows,
+    topClients,
+    recentExecutions,
+    series,
+    workflowDurations,
+    workflowUsage,
+    usageRangeLabel,
+    usageSummary,
+  } = await getOverviewData();
 
   return (
     <>
@@ -401,8 +533,13 @@ export default async function AdminOverviewPage() {
         <div className="col-span-2">
           <RecentExecutions items={recentExecutions} />
         </div>
-        <div className="col-span-1">
+        <div className="col-span-1 space-y-4">
           <TopClients items={topClients} />
+          <WorkflowUsageBreakdown
+            items={workflowUsage}
+            rangeLabel={usageRangeLabel}
+            defaultCurrency={usageSummary?.currency}
+          />
         </div>
       </div>
     </>
