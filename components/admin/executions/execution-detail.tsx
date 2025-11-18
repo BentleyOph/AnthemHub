@@ -16,6 +16,7 @@ import type {
   ExecutionEventItem,
   ExecutionEventsResult,
 } from "@/lib/admin/executions/data";
+import { formatCostAmount, normalizeCostPayload } from "@/lib/costs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,6 +104,17 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
   // Use the execution stream hook for live updates
   const isLive = LIVE_STATUSES.has(execution.status);
   const { connected, events: streamEvents } = useExecutionStream(isLive ? execution.id : undefined);
+
+  const normalizedCost = useMemo(() => normalizeCostPayload(execution.costBreakdown), [execution.costBreakdown]);
+  const totalCostValue = normalizedCost?.totalCost ?? execution.totalCost ?? null;
+  const inputCostValue = normalizedCost?.inputCost ?? null;
+  const outputCostValue = normalizedCost?.outputCost ?? null;
+  const usageCurrency = normalizedCost?.currency ?? execution.costCurrency ?? undefined;
+  const hasUsageData =
+    totalCostValue !== null ||
+    inputCostValue !== null ||
+    outputCostValue !== null ||
+    Boolean(execution.costBreakdown);
 
   const fetchEvents = useCallback(
     async (page: number) => {
@@ -246,6 +258,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
       <Tabs defaultValue="timeline" className="space-y-4">
         <TabsList>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="usage">Usage</TabsTrigger>
           <TabsTrigger value="input">Input payload</TabsTrigger>
           <TabsTrigger value="output">Output payload</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
@@ -308,6 +321,60 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                     </>
                   )}
                 </Button>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="usage">
+          <Card>
+            <CardHeader>
+              <CardTitle>Usage breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {hasUsageData ? (
+                <div className="space-y-4">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg border bg-muted/30 p-3">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Total cost</p>
+                      <p className="text-xl font-semibold text-foreground">
+                        {formatCostAmount(totalCostValue, usageCurrency)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 p-3">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Input cost</p>
+                      <p className="text-lg font-semibold text-foreground">
+                        {formatCostAmount(inputCostValue, usageCurrency)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 p-3">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Output cost</p>
+                      <p className="text-lg font-semibold text-foreground">
+                        {formatCostAmount(outputCostValue, usageCurrency)}
+                      </p>
+                    </div>
+                  </div>
+                  {usageCurrency && (
+                    <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+                      <span className="font-medium text-foreground">Currency:</span>{" "}
+                      <span className="uppercase">{usageCurrency}</span>
+                    </div>
+                  )}
+                  {execution.costBreakdown ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">
+                        Raw cost payload
+                      </p>
+                      <pre className="max-h-[320px] w-full max-w-full overflow-auto rounded bg-muted/30 p-3 text-xs whitespace-pre-wrap break-all">
+                        {prettyJson(execution.costBreakdown)}
+                      </pre>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No usage data recorded for this execution yet.
+                </p>
               )}
             </CardContent>
           </Card>

@@ -15,6 +15,7 @@ import {
 } from "@tabler/icons-react";
 
 import type { ExecutionListResult, ExecutionSort, ExecutionStatus } from "@/lib/admin/executions/data";
+import { formatCostAmount } from "@/lib/costs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -520,6 +521,7 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
                     )}
                   </Button>
                 </TableHead>
+                <TableHead className="w-[140px]">Usage</TableHead>
                 <TableHead className="w-[120px]">Source</TableHead>
                 <TableHead className="w-[120px]">Result</TableHead>
                 <TableHead>Error</TableHead>
@@ -528,7 +530,7 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
             <TableBody>
               {result.data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={10} className="py-12 text-center text-sm text-muted-foreground">
                     No executions match the current filters.
                   </TableCell>
                 </TableRow>
@@ -552,6 +554,7 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
                   <TableCell>{row.clientName}</TableCell>
                   <TableCell>{formatDateTime(row.startedAt, timezone)}</TableCell>
                   <TableCell>{formatDuration(row.durationMs)}</TableCell>
+                  <TableCell>{formatCostAmount(row.totalCost, row.costCurrency)}</TableCell>
                   <TableCell>{row.source ?? "—"}</TableCell>
                   <TableCell>
                     {row.resultFileUrl ? (
