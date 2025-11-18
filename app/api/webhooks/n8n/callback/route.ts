@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { normalizeCostPayload, sanitizeCostJson } from "@/lib/costs";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 // Progress update: stage + message, no status
@@ -13,6 +14,18 @@ const progressUpdateSchema = z.object({
   raw: z.unknown().optional(),
 });
 
+const costAmountSchema = z.union([z.number(), z.string().trim().min(1)]).optional();
+
+const costPayloadSchema = z
+  .object({
+    input_cost: costAmountSchema,
+    output_cost: costAmountSchema,
+    total_cost: costAmountSchema,
+    currency: z.string().trim().min(1).max(16).optional(),
+  })
+  .catchall(z.unknown())
+  .passthrough();
+
 // Success update: status=SUCCESS + output
 const successUpdateSchema = z.object({
   execution_id: z.uuid(),
@@ -21,6 +34,7 @@ const successUpdateSchema = z.object({
   output: z.unknown(), // Allow any output structure
   result_file_url: z.url().optional(),
   finished_at: z.iso.datetime({ offset: true }).optional(),
+  cost: costPayloadSchema.optional(),
 });
 
 // Error update: status=ERROR + error message
@@ -30,6 +44,7 @@ const errorUpdateSchema = z.object({
   status: z.literal("ERROR"),
   error: z.string().max(1024),
   finished_at: z.iso.datetime({ offset: true }).optional(),
+  cost: costPayloadSchema.optional(),
 });
 
 const callbackSchema = z.discriminatedUnion("status", [
@@ -221,6 +236,8 @@ async function finalizeSuccess(
     updates.result_file_url = payload.result_file_url;
   }
 
+  applyCostPayloadToUpdates(updates, payload.cost);
+
   const { error } = await supabase
     .from("execution")
     .update(updates)
@@ -253,6 +270,8 @@ async function finalizeError(
     updates.n8n_run_id = payload.n8n_run_id;
   }
 
+  applyCostPayloadToUpdates(updates, payload.cost);
+
   const { error } = await supabase
     .from("execution")
     .update(updates)
@@ -264,4 +283,40 @@ async function finalizeError(
   }
 
   return true;
+}
+
+function applyCostPayloadToUpdates(updates: Record<string, unknown>, costPayload: unknown | undefined) {
+  if (typeof costPayload === "undefined") {
+    return;
+  }
+
+  if (costPayload === null) {
+    updates.total_cost = null;
+    updates.cost_currency = null;
+    updates.cost_breakdown = null;
+    return;
+  }
+
+  if (typeof costPayload !== "object") {
+    return;
+  }
+
+  const normalized = normalizeCostPayload(costPayload);
+  const sanitized = sanitizeCostJson(costPayload);
+
+  if (sanitized !== null) {
+    updates.cost_breakdown = sanitized;
+  }
+
+  if (!normalized) {
+    return;
+  }
+
+  if (normalized.provided.total) {
+    updates.total_cost = typeof normalized.totalCost === "number" ? normalized.totalCost : null;
+  }
+
+  if (normalized.provided.currency) {
+    updates.cost_currency = normalized.currency ?? null;
+  }
 }
