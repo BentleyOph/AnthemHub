@@ -51,7 +51,10 @@ create table "public"."execution" (
     "n8n_run_id" text,
     "started_at" timestamp with time zone not null default now(),
     "finished_at" timestamp with time zone,
-    "result_file_url" text
+    "result_file_url" text,
+    "total_cost" numeric,
+    "cost_currency" text,
+    "cost_breakdown" jsonb
 );
 
 
@@ -115,7 +118,8 @@ CREATE INDEX idx_execution_client_workflow_status ON public.execution USING btre
 CREATE INDEX idx_execution_event_execution_timestamp ON public.execution_event USING btree (execution_id, "timestamp");
 
 CREATE INDEX idx_execution_started_at ON public.execution USING btree (started_at);
-
+CREATE INDEX idx_execution_total_cost ON public.execution USING btree (total_cost);
+CREATE INDEX idx_execution_workflow_started_at ON public.execution USING btree (workflow_id, started_at);
 CREATE UNIQUE INDEX user_profile_email_key ON public.user_profile USING btree (email);
 
 CREATE UNIQUE INDEX user_profile_pkey ON public.user_profile USING btree (id);
@@ -387,5 +391,62 @@ CREATE TRIGGER trg_client_updated BEFORE UPDATE ON public.client FOR EACH ROW EX
 CREATE TRIGGER trg_user_profile_updated BEFORE UPDATE ON public.user_profile FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER trg_workflow_updated BEFORE UPDATE ON public.workflow FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+create or replace function public.get_usage_cost_summary(p_from timestamptz, p_to timestamptz)
+returns table(total_cost numeric, execution_count bigint, average_cost numeric, currency text)
+language sql
+stable
+as $$
+  with stats as (
+    select
+      coalesce(sum(total_cost), 0) as total_cost,
+      count(*) filter (where total_cost is not null) as execution_count,
+      max(cost_currency) as currency
+    from public.execution
+    where started_at between p_from and p_to
+      and total_cost is not null
+  )
+  select
+    stats.total_cost,
+    stats.execution_count,
+    case
+      when stats.execution_count = 0 then null
+      else stats.total_cost / stats.execution_count
+    end as average_cost,
+    stats.currency
+  from stats;
+$$;
 
-
+create or replace function public.get_workflow_usage_breakdown(
+  p_from timestamptz,
+  p_to timestamptz,
+  p_limit integer default 10
+)
+returns table(
+  workflow_id uuid,
+  workflow_name text,
+  total_cost numeric,
+  execution_count bigint,
+  average_cost numeric,
+  currency text
+)
+language sql
+stable
+as $$
+  select
+    e.workflow_id,
+    w.name as workflow_name,
+    coalesce(sum(e.total_cost), 0) as total_cost,
+    count(*) filter (where e.total_cost is not null) as execution_count,
+    case
+      when count(*) filter (where e.total_cost is not null) = 0 then null
+      else sum(e.total_cost) / count(*) filter (where e.total_cost is not null)
+    end as average_cost,
+    max(e.cost_currency) as currency
+  from public.execution e
+  join public.workflow w on w.id = e.workflow_id
+  where e.total_cost is not null
+    and e.started_at between p_from and p_to
+  group by e.workflow_id, w.name
+  order by total_cost desc nulls last
+  limit greatest(coalesce(p_limit, 10), 1);
+$$;
