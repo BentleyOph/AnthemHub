@@ -31,6 +31,11 @@ const STATUS_OPTIONS: Array<{ label: string; value: WorkflowListResult["status"]
 ];
 
 const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+const integerFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+const percentFormatter = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
 
 function getDateFormatter(timeZone: string) {
   if (!dateFormatters.has(timeZone)) {
@@ -52,6 +57,29 @@ function formatDate(value: string, timeZone: string) {
   } catch {
     return value;
   }
+}
+
+function formatInteger(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  return integerFormatter.format(value);
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  return `${percentFormatter.format(value)}%`;
+}
+
+function formatRuntime(seconds: number | null | undefined) {
+  if (seconds === null || seconds === undefined) return "—";
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remaining = Math.round(seconds - minutes * 60);
+  if (remaining <= 0) {
+    return `${minutes}m`;
+  }
+  return `${minutes}m ${remaining}s`;
 }
 
 function stringifySearch(params: URLSearchParams) {
@@ -181,13 +209,17 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
               <TableHead>Status</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead className="text-right">Total runs (30d)</TableHead>
+              <TableHead className="text-right">Success rate (30d)</TableHead>
+              <TableHead className="text-right">Avg runtime</TableHead>
+              <TableHead className="text-right">Active schedules</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {result.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                   {search || status !== "ALL"
                     ? "No workflows match the current filters."
                     : "No workflows created yet. Start by creating your first workflow."}
@@ -226,6 +258,18 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
                   </TableCell>
                   <TableCell>{formatDate(workflow.updatedAt, timeZone)}</TableCell>
                   <TableCell>{formatDate(workflow.createdAt, timeZone)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatInteger(workflow.totalRuns30d)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatPercent(workflow.successRate30d)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatRuntime(workflow.avgRuntimeSeconds)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatInteger(workflow.activeSchedules)}
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button variant="link" size="sm" asChild>
                       <Link href={`/admin/workflows/${workflow.id}`}>View</Link>

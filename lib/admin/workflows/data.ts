@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { PostgrestSingleResponse } from "@supabase/postgrest-js";
 import { z } from "zod";
 
 import {
@@ -46,6 +47,10 @@ export type WorkflowListItem = {
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;
+  totalRuns30d: number;
+  successRate30d: number | null;
+  avgRuntimeSeconds: number | null;
+  activeSchedules: number;
 };
 
 export type WorkflowListResult = {
@@ -221,16 +226,52 @@ export async function listWorkflows(
   }
 
   const rows = data ?? [];
+  const workflowIds = rows.map((row) => row.id);
+
+  type WorkflowMetricsRow = {
+    workflow_id: string;
+    total_runs_30d: number | null;
+    success_rate_30d: number | null;
+    avg_runtime_seconds: number | null;
+    active_schedules: number | null;
+  };
+
+  const metricsByWorkflow = new Map<string, WorkflowMetricsRow>();
+
+  if (workflowIds.length > 0) {
+    const { data: metricsRows, error: metricsError } =
+      (await service.rpc("get_workflow_admin_metrics", {
+        workflow_ids: workflowIds,
+      })) as PostgrestSingleResponse<WorkflowMetricsRow[]>;
+
+    if (metricsError) {
+      console.error("Failed to load workflow metrics", metricsError);
+    } else {
+      for (const row of metricsRows ?? []) {
+        if (row?.workflow_id) {
+          metricsByWorkflow.set(row.workflow_id, row);
+        }
+      }
+    }
+  }
+
   const items = await Promise.all(
-    rows.map(async (row): Promise<WorkflowListItem> => ({
-      id: row.id,
-      name: row.name,
-      description: row.public_desc,
-      iconUrl: await resolveWorkflowIconUrl(row.icon_url),
-      isPublished: row.is_published,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    })),
+    rows.map(async (row): Promise<WorkflowListItem> => {
+      const metrics = metricsByWorkflow.get(row.id);
+      return {
+        id: row.id,
+        name: row.name,
+        description: row.public_desc,
+        iconUrl: await resolveWorkflowIconUrl(row.icon_url),
+        isPublished: row.is_published,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        totalRuns30d: metrics?.total_runs_30d ?? 0,
+        successRate30d: metrics?.success_rate_30d ?? null,
+        avgRuntimeSeconds: metrics?.avg_runtime_seconds ?? null,
+        activeSchedules: metrics?.active_schedules ?? 0,
+      };
+    }),
   );
 
   const total = count ?? rows.length;

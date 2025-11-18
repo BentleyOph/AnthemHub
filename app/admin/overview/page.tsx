@@ -13,6 +13,10 @@ import { TopWorkflows, type TopWorkflowItem } from "@/components/dashboard/top-w
 import { RecentExecutions, type RecentExecutionItem } from "@/components/dashboard/recent-executions";
 import { TopClients, type TopClientItem } from "@/components/dashboard/top-clients";
 import {
+  WorkflowAverageDurations,
+  type WorkflowAverageDurationItem,
+} from "@/components/dashboard/workflow-average-durations";
+import {
   getSupabaseServerClient,
   getSupabaseServiceRoleClient,
 } from "@/lib/supabase/server";
@@ -24,6 +28,13 @@ type AdminOverviewKpis = {
   success_rate_7d: number | string | null;
   active_clients_today: number | string | null;
   pending_requests_count: number | string | null;
+  workflow_avg_execution_times: WorkflowAverageDurationRow[] | null;
+};
+
+type WorkflowAverageDurationRow = {
+  workflow_id: string | null;
+  workflow_name: string | null;
+  avg_duration_seconds: number | string | null;
 };
 
 type ExecutionRow = { started_at: string | null };
@@ -115,6 +126,19 @@ function formatDateTime(value: string | null | undefined): string {
     console.error("Failed to format date", error);
     return "—";
   }
+}
+
+function formatDuration(value: number | string | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  const totalSeconds = Math.max(0, Math.round(toNumber(value)));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes <= 0) {
+    return `${seconds}s`;
+  }
+
+  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
 }
 
 const EXEC_STATUSES: ReadonlyArray<RecentExecutionItem["status"]> = [
@@ -309,6 +333,20 @@ async function getOverviewData() {
     fetchExecutionSeries(admin),
   ]);
 
+  const workflowDurations: WorkflowAverageDurationItem[] = (kpis?.workflow_avg_execution_times ?? [])
+    .map((row, index) => {
+      const safeName = row.workflow_name?.trim() ?? "";
+      const label = safeName.length > 0 ? safeName : "Unknown workflow";
+      const durationSeconds = toNumber(row.avg_duration_seconds);
+      return {
+        id: row.workflow_id ?? `${label}-${index}`,
+        name: label,
+        durationSeconds,
+        durationLabel: formatDuration(row.avg_duration_seconds),
+      };
+    })
+    .filter((item) => item.durationLabel !== "—");
+
   const metrics: OverviewMetric[] = [
     {
       label: "Total executions (today)",
@@ -338,12 +376,14 @@ async function getOverviewData() {
     topClients,
     recentExecutions,
     series,
+    workflowDurations,
   };
 }
 
 export default async function AdminOverviewPage() {
   await ensureAdminSession();
-  const { metrics, topWorkflows, topClients, recentExecutions, series } = await getOverviewData();
+  const { metrics, topWorkflows, topClients, recentExecutions, series, workflowDurations } =
+    await getOverviewData();
 
   return (
     <>
@@ -352,8 +392,9 @@ export default async function AdminOverviewPage() {
         <div className="@container/left col-span-2">
           <ExecutionsChart data={series} timeZone={TIME_ZONE} />
         </div>
-        <div className="col-span-1">
+        <div className="col-span-1 space-y-4">
           <TopWorkflows items={topWorkflows} />
+          <WorkflowAverageDurations items={workflowDurations} />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @4xl/main:grid-cols-3">
