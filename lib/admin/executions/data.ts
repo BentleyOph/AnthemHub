@@ -64,6 +64,9 @@ type ExecutionRow = {
   result_file_url: string | null;
   error_message: string | null;
   n8n_run_id: string | null;
+  total_cost: number | string | null;
+  cost_currency: string | null;
+  cost_breakdown?: unknown;
   workflow: { id: string; name: string | null } | null;
   client: { id: string; name: string | null } | null;
 };
@@ -91,6 +94,8 @@ export type ExecutionListItem = {
   resultFileUrl: string | null;
   errorMessage: string | null;
   n8nRunId: string | null;
+  totalCost: number | null;
+  costCurrency: string | null;
 };
 
 export type ExecutionDetail = {
@@ -109,6 +114,9 @@ export type ExecutionDetail = {
   n8nRunId: string | null;
   inputPayload: unknown;
   outputPayload: unknown;
+  totalCost: number | null;
+  costCurrency: string | null;
+  costBreakdown: unknown;
 };
 
 export type ExecutionEventItem = {
@@ -173,6 +181,19 @@ function computeDurationMs(row: Pick<ExecutionRow, "started_at" | "finished_at">
   return finished - started;
 }
 
+function parseNumericColumn(value: number | string | null | undefined): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
 export function normalizeExecutionListParams(
   params: z.input<typeof executionListSchema>,
 ): ExecutionListNormalized {
@@ -214,6 +235,8 @@ export async function listExecutions(
         result_file_url,
         error_message,
         n8n_run_id,
+        total_cost,
+        cost_currency,
         workflow:workflow ( id, name ),
         client:client ( id, name )
       `,
@@ -289,6 +312,8 @@ export async function listExecutions(
     resultFileUrl: row.result_file_url,
     errorMessage: row.error_message,
     n8nRunId: row.n8n_run_id,
+    totalCost: parseNumericColumn(row.total_cost),
+    costCurrency: row.cost_currency,
   }));
 
   const nextPage = fromIndex + items.length < total ? params.page + 1 : null;
@@ -332,6 +357,9 @@ export async function getExecutionDetail(id: string): Promise<ExecutionDetail | 
         n8n_run_id,
         input_payload,
         output_payload,
+        total_cost,
+        cost_currency,
+        cost_breakdown,
         workflow:workflow ( id, name ),
         client:client ( id, name )
       `,
@@ -368,6 +396,9 @@ export async function getExecutionDetail(id: string): Promise<ExecutionDetail | 
     n8nRunId: row.n8n_run_id,
     inputPayload: row.input_payload,
     outputPayload: row.output_payload,
+    totalCost: parseNumericColumn(row.total_cost),
+    costCurrency: row.cost_currency,
+    costBreakdown: row.cost_breakdown,
   };
 }
 
