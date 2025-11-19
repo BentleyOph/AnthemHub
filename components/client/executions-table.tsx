@@ -35,6 +35,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SingleDatePicker } from "@/components/ui/date-picker";
+import { formatDateOnlyParam, parseDateOnlyString } from "@/lib/dates";
 
 const STATUS_META: Record<
   ClientExecutionStatus,
@@ -123,8 +125,12 @@ export function ClientExecutionsTable({
   const viewMode: "all" | "mine" = viewParam === "mine" ? "mine" : "all";
   const [statusFilter, setStatusFilter] = useState(() => searchParams?.get("status") ?? "all");
   const [startedByFilter, setStartedByFilter] = useState(() => searchParams?.get("started_by") ?? "");
-  const [dateFrom, setDateFrom] = useState(() => searchParams?.get("started_from") ?? "");
-  const [dateTo, setDateTo] = useState(() => searchParams?.get("started_to") ?? "");
+  const [dateFrom, setDateFrom] = useState<Date | null>(() =>
+    parseDateOnlyString(searchParams?.get("started_from") ?? undefined)
+  );
+  const [dateTo, setDateTo] = useState<Date | null>(() =>
+    parseDateOnlyString(searchParams?.get("started_to") ?? undefined)
+  );
   const [workflowFilter, setWorkflowFilter] = useState(() => searchParams?.get("workflow") ?? "all");
 
   const gotoDetails = (executionId: string) => {
@@ -160,14 +166,17 @@ export function ClientExecutionsTable({
       params.delete("started_by");
     }
 
-    if (dateFrom) {
-      params.set("started_from", dateFrom);
+    const formattedFrom = formatDateOnlyParam(dateFrom);
+    const formattedTo = formatDateOnlyParam(dateTo);
+
+    if (formattedFrom) {
+      params.set("started_from", formattedFrom);
     } else {
       params.delete("started_from");
     }
 
-    if (dateTo) {
-      params.set("started_to", dateTo);
+    if (formattedTo) {
+      params.set("started_to", formattedTo);
     } else {
       params.delete("started_to");
     }
@@ -190,8 +199,8 @@ export function ClientExecutionsTable({
   const handleResetFilters = () => {
     setStatusFilter("all");
     setStartedByFilter("");
-    setDateFrom("");
-    setDateTo("");
+    setDateFrom(null);
+    setDateTo(null);
     setWorkflowFilter("all");
 
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -229,7 +238,7 @@ export function ClientExecutionsTable({
         </div>
       </div>
       <form onSubmit={handleFilterSubmit} className="space-y-3 rounded-lg border bg-muted/10 p-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="status-filter">Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -256,21 +265,24 @@ export function ClientExecutionsTable({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="date-from-filter">Date range</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                id="date-from-filter"
-                type="date"
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
-              />
-              <Input
-                id="date-to-filter"
-                type="date"
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
-              />
-            </div>
+            <Label htmlFor="date-range-from">From</Label>
+            <SingleDatePicker
+              id="date-range-from"
+              value={dateFrom}
+              onChange={setDateFrom}
+              className="w-full"
+              maxDate={dateTo ?? undefined}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="date-range-to">To</Label>
+            <SingleDatePicker
+              id="date-range-to"
+              value={dateTo}
+              onChange={setDateTo}
+              className="w-full"
+              minDate={dateFrom ?? undefined}
+            />
           </div>
           {showWorkflowFilter ? (
             <div className="flex flex-col gap-1.5">
