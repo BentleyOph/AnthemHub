@@ -2,6 +2,9 @@ import { z } from "zod";
 
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
+const CLIENT_USAGE_LOOKBACK_DAYS = 30;
+const CLIENT_WORKFLOW_USAGE_LIMIT = 6;
+
 export const clientListSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   per_page: z.coerce.number().int().positive().max(100).default(20),
@@ -113,6 +116,28 @@ type ExecutionHistoryRow = {
   } | null;
 };
 
+type ClientUsageRow = {
+  total_cost: number | string | null;
+  execution_count: number | string | null;
+  average_cost: number | string | null;
+  currency: string | null;
+};
+
+type ClientUserRow = {
+  id: string;
+  email: string | null;
+  role: "ADMIN" | "CLIENT" | null;
+};
+
+type ClientWorkflowUsageRow = {
+  workflow_id: string | null;
+  workflow_name: string | null;
+  total_cost: number | string | null;
+  execution_count: number | string | null;
+  average_cost: number | string | null;
+  currency: string | null;
+};
+
 export type ClientDetail = {
   client: {
     id: string;
@@ -136,6 +161,26 @@ export type ClientDetail = {
   assignableWorkflows: Array<{
     id: string;
     name: string;
+  }>;
+  usage: {
+    totalCost: number | null;
+    averageCost: number | null;
+    executionCount: number;
+    currency: string | null;
+    rangeLabel: string;
+  } | null;
+  users: Array<{
+    id: string;
+    email: string | null;
+    role: "ADMIN" | "CLIENT";
+  }>;
+  workflowUsage: Array<{
+    id: string;
+    name: string;
+    totalCost: number | null;
+    executions: number;
+    averageCost: number | null;
+    currency: string | null;
   }>;
   recentExecutions: Array<{
     id: string;
@@ -179,6 +224,28 @@ function extractRelationCount(
     return value.count ?? 0;
   }
   return 0;
+}
+
+function toNumber(value: number | string | null | undefined): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function toNumberOrNull(value: number | string | null | undefined): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 export function normalizeClientListParams(params: ClientListParams): ClientListNormalized {
@@ -365,6 +432,29 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     .order("started_at", { ascending: false })
     .limit(20);
 
+  const usageRangeEnd = new Date();
+  const usageRangeStart = new Date(
+    usageRangeEnd.getTime() - CLIENT_USAGE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+  );
+  const usagePromise = service.rpc("get_client_usage_cost_summary", {
+    p_client: clientId,
+    p_from: usageRangeStart.toISOString(),
+    p_to: usageRangeEnd.toISOString(),
+  });
+
+  const usersPromise = service
+    .from("user_profile")
+    .select("id,email,role")
+    .eq("client_id", clientId)
+    .order("email", { ascending: true });
+
+  const workflowUsagePromise = service.rpc("get_client_workflow_usage_breakdown", {
+    p_client: clientId,
+    p_from: usageRangeStart.toISOString(),
+    p_to: usageRangeEnd.toISOString(),
+    p_limit: CLIENT_WORKFLOW_USAGE_LIMIT,
+  });
+
   const [
     clientResult,
     accessResult,
@@ -373,6 +463,9 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     executionsSuccessResult,
     latestRunResult,
     recentExecutionsResult,
+    usageResult,
+    usersResult,
+    workflowUsageResult,
   ] = await Promise.all([
     clientPromise,
     accessPromise,
@@ -381,6 +474,9 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     executionsSuccessPromise,
     latestRunPromise,
     recentExecutionsPromise,
+    usagePromise,
+    usersPromise,
+    workflowUsagePromise,
   ]);
 
   if (clientResult.error) {
@@ -412,6 +508,18 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
 
   if (recentExecutionsResult.error) {
     throw recentExecutionsResult.error;
+  }
+
+  if (usageResult.error) {
+    throw usageResult.error;
+  }
+
+  if (usersResult.error) {
+    throw usersResult.error;
+  }
+
+  if (workflowUsageResult.error) {
+    throw workflowUsageResult.error;
   }
 
   const clientRow = clientResult.data;
@@ -451,6 +559,38 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     resultFileUrl: row.result_file_url,
   }));
 
+  const usageRangeLabel = `Last ${CLIENT_USAGE_LOOKBACK_DAYS} days`;
+  const usageRow = (usageResult.data ?? [])?.[0] as ClientUsageRow | undefined;
+  const usageSummary = usageRow
+    ? {
+        totalCost: toNumberOrNull(usageRow.total_cost),
+        averageCost: toNumberOrNull(usageRow.average_cost),
+        executionCount: toNumber(usageRow.execution_count ?? 0),
+        currency: usageRow.currency ?? null,
+        rangeLabel: usageRangeLabel,
+      }
+    : null;
+
+  const userRows = (usersResult.data ?? []) as ClientUserRow[];
+  const users = userRows.map((row) => ({
+    id: row.id,
+    email: row.email,
+    role: row.role === "ADMIN" ? "ADMIN" : "CLIENT",
+  }));
+
+  const workflowUsageRows = (workflowUsageResult.data ?? []) as ClientWorkflowUsageRow[];
+  const workflowUsage = workflowUsageRows.map((row, index) => {
+    const safeName = row.workflow_name?.trim() ?? "";
+    return {
+      id: row.workflow_id ?? `workflow-${index}`,
+      name: safeName.length > 0 ? safeName : "Unnamed workflow",
+      totalCost: toNumberOrNull(row.total_cost),
+      executions: toNumber(row.execution_count ?? 0),
+      averageCost: toNumberOrNull(row.average_cost),
+      currency: row.currency ?? null,
+    };
+  });
+
   return {
     client: {
       id: clientRow.id,
@@ -467,6 +607,9 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     },
     assignedWorkflows,
     assignableWorkflows,
+    usage: usageSummary,
+    users,
+    workflowUsage,
     recentExecutions,
   };
 }

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getClientDetail } from "@/lib/admin/clients/data";
+import { formatCostAmount } from "@/lib/costs";
 
 type RouteParams = {
   params: Promise<{ id: string }> | { id: string };
@@ -79,7 +80,16 @@ export default async function AdminClientDetailPage({ params }: RouteParams) {
     notFound();
   }
 
-  const { client, metrics, assignedWorkflows, assignableWorkflows, recentExecutions } = detail;
+  const {
+    client,
+    metrics,
+    assignedWorkflows,
+    assignableWorkflows,
+    usage,
+    users,
+    workflowUsage,
+    recentExecutions,
+  } = detail;
 
   const accessKey = assignedWorkflows
     .map((workflow) => workflow.id)
@@ -170,8 +180,80 @@ export default async function AdminClientDetailPage({ params }: RouteParams) {
               {integerFormatter.format(metrics.assignedWorkflowCount)}
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Usage</CardTitle>
+              <CardDescription>
+                {usage?.rangeLabel ?? "Recent cost activity for this client."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-semibold">
+                {usage
+                  ? formatCostAmount(usage.totalCost, usage.currency ?? undefined)
+                  : "—"}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {usage
+                  ? `${integerFormatter.format(usage.executionCount)} executions${
+                      usage.averageCost !== null
+                        ? ` · Avg ${formatCostAmount(
+                            usage.averageCost,
+                            usage.currency ?? undefined,
+                          )}`
+                        : ""
+                    }`
+                  : "No usage recorded for this period."}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Workflow usage</CardTitle>
+          <CardDescription>
+            {usage?.rangeLabel ?? "Recent usage broken down per workflow."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {workflowUsage.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No workflow usage data recorded for this period.
+            </p>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="px-2 py-2">Workflow</th>
+                  <th className="px-2 py-2 text-right">Executions</th>
+                  <th className="px-2 py-2 text-right">Total cost</th>
+                  <th className="px-2 py-2 text-right">Avg cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workflowUsage.map((item) => (
+                  <tr key={item.id} className="border-b last:border-b-0">
+                    <td className="px-2 py-2 font-medium">{item.name}</td>
+                    <td className="px-2 py-2 text-right">{integerFormatter.format(item.executions)}</td>
+                    <td className="px-2 py-2 text-right">
+                      {item.totalCost !== null
+                        ? formatCostAmount(item.totalCost, item.currency ?? undefined)
+                        : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      {item.averageCost !== null
+                        ? formatCostAmount(item.averageCost, item.currency ?? undefined)
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -186,6 +268,44 @@ export default async function AdminClientDetailPage({ params }: RouteParams) {
             initialSelection={assignedWorkflows.map((workflow) => workflow.id)}
             assignedWorkflows={assignedWorkflows}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>People associated with this client.</CardDescription>
+          <CardAction>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/admin/users">Manage users</Link>
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {users.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No users are mapped to this client yet.
+            </p>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="px-2 py-2">Email</th>
+                  <th className="px-2 py-2">Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-b last:border-b-0">
+                    <td className="px-2 py-2">{user.email ?? "—"}</td>
+                    <td className="px-2 py-2">
+                      {user.role === "ADMIN" ? "Admin" : "Client"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
 
