@@ -8,6 +8,11 @@ interface UserProfile {
   client_id: string | null;
 }
 
+interface ClientOption {
+  id: string;
+  name: string;
+}
+
 async function getProfiles(): Promise<UserProfile[]> {
   const admin = getSupabaseServiceRoleClient();
   const { data } = await admin
@@ -15,6 +20,18 @@ async function getProfiles(): Promise<UserProfile[]> {
     .select("id,email,role,client_id")
     .order("email", { ascending: true });
   return data ?? [];
+}
+
+async function getClients(): Promise<ClientOption[]> {
+  const admin = getSupabaseServiceRoleClient();
+  const { data } = await admin
+    .from("client")
+    .select("id,name")
+    .order("name", { ascending: true });
+  return (data ?? []).map((client) => ({
+    id: client.id,
+    name: client.name ?? "Unnamed client",
+  }));
 }
 
 async function assertAdmin() {
@@ -46,7 +63,7 @@ async function assertAdmin() {
 
 export default async function UsersAdminPage() {
   await assertAdmin();
-  const profiles = await getProfiles();
+  const [profiles, clients] = await Promise.all([getProfiles(), getClients()]);
 
   return (
     <div className="space-y-6">
@@ -74,13 +91,18 @@ export default async function UsersAdminPage() {
                       <option value="CLIENT">CLIENT</option>
                       <option value="ADMIN">ADMIN</option>
                     </select>
-                    <input
-                      type="text"
+                    <select
                       name="client_id"
                       defaultValue={u.client_id ?? ""}
-                      placeholder="client uuid"
                       className="border rounded p-1 w-64"
-                    />
+                    >
+                      <option value="">Unassigned</option>
+                      {clients.map((client) => (
+                        <option key={client.id} value={client.id}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
                     <button type="submit" className="rounded bg-black text-white px-3 py-1 text-xs">
                       Save
                     </button>

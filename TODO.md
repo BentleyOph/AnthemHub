@@ -38,3 +38,16 @@
 
 - [ ] **Validation**
   - Manually test with a client that has multiple workflows to ensure the breakdown matches the executions view, and with a client that has none to confirm the empty state.
+
+## Feature: Easier client assignment in admin users
+
+- [x] **Data: Load client options for admin users page**
+  - Extend `app/admin/users/page.tsx` data fetching to retrieve the list of clients (id + display label) alongside user profiles so the UI can render the dropdown.
+  - Consider sorting clients alphabetically for easier scanning.
+
+- [x] **UI: Replace manual UUID input with dropdown**
+  - On `/admin/users`, change the client ID text input in each row’s form to a `<select>` populated with the fetched clients, plus an empty option for “Unassigned”.
+  - Ensure the current client mapping is selected by default and the select still posts `client_id` to `updateUserAction`.
+
+- [ ] **Validation**
+  - Verify that updating a user’s client via the dropdown works for assigning, clearing, and switching clients, and that role updates still function.
