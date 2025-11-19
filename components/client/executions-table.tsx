@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   IconAlertTriangle,
   IconCircleCheck,
@@ -16,7 +16,17 @@ import type {
 } from "@/lib/client/executions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -88,31 +98,225 @@ function formatDuration(ms: number | null): string {
   return parts.join(" ") || "0s";
 }
 
+interface WorkflowFilterOption {
+  id: string;
+  name: string;
+}
+
 interface ClientExecutionsTableProps {
   items: ClientExecutionListItem[];
   timezone: string;
+  workflowFilterOptions?: WorkflowFilterOption[];
+  showWorkflowFilter?: boolean;
 }
 
-export function ClientExecutionsTable({ items, timezone }: ClientExecutionsTableProps) {
+export function ClientExecutionsTable({
+  items,
+  timezone,
+  workflowFilterOptions = [],
+  showWorkflowFilter = true,
+}: ClientExecutionsTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const viewParam = searchParams?.get("view");
+  const viewMode: "all" | "mine" = viewParam === "mine" ? "mine" : "all";
+  const [statusFilter, setStatusFilter] = useState(() => searchParams?.get("status") ?? "all");
+  const [startedByFilter, setStartedByFilter] = useState(() => searchParams?.get("started_by") ?? "");
+  const [dateFrom, setDateFrom] = useState(() => searchParams?.get("started_from") ?? "");
+  const [dateTo, setDateTo] = useState(() => searchParams?.get("started_to") ?? "");
+  const [workflowFilter, setWorkflowFilter] = useState(() => searchParams?.get("workflow") ?? "all");
 
   const gotoDetails = (executionId: string) => {
     router.push(`/executions/${executionId}`);
   };
 
+  const setViewMode = (mode: "all" | "mine") => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    if (mode === "mine") {
+      params.set("view", "mine");
+    } else {
+      params.delete("view");
+    }
+    params.delete("page");
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const handleFilterSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    const trimmedStartedBy = startedByFilter.trim();
+
+    if (statusFilter && statusFilter !== "all") {
+      params.set("status", statusFilter);
+    } else {
+      params.delete("status");
+    }
+
+    if (trimmedStartedBy.length > 0) {
+      params.set("started_by", trimmedStartedBy);
+    } else {
+      params.delete("started_by");
+    }
+
+    if (dateFrom) {
+      params.set("started_from", dateFrom);
+    } else {
+      params.delete("started_from");
+    }
+
+    if (dateTo) {
+      params.set("started_to", dateTo);
+    } else {
+      params.delete("started_to");
+    }
+
+    if (showWorkflowFilter) {
+      if (workflowFilter && workflowFilter !== "all") {
+        params.set("workflow", workflowFilter);
+      } else {
+        params.delete("workflow");
+      }
+    } else {
+      params.delete("workflow");
+    }
+
+    params.delete("page");
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const handleResetFilters = () => {
+    setStatusFilter("all");
+    setStartedByFilter("");
+    setDateFrom("");
+    setDateTo("");
+    setWorkflowFilter("all");
+
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.delete("status");
+    params.delete("started_by");
+    params.delete("started_from");
+    params.delete("started_to");
+    params.delete("workflow");
+    params.delete("page");
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[200px]">Date</TableHead>
-            <TableHead>Workflow</TableHead>
-            <TableHead className="w-[140px]">Status</TableHead>
-            <TableHead className="w-[120px] text-right">Duration</TableHead>
-            <TableHead className="w-[160px] text-right">Result</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={viewMode === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("all")}
+          >
+            All activity
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === "mine" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("mine")}
+          >
+            My runs
+          </Button>
+        </div>
+      </div>
+      <form onSubmit={handleFilterSubmit} className="space-y-3 rounded-lg border bg-muted/10 p-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="status-filter">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id="status-filter" className="w-full justify-between">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="SUCCESS">Complete</SelectItem>
+                <SelectItem value="PROCESSING">Processing</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="ERROR">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="started-by-filter">Started by</Label>
+            <Input
+              id="started-by-filter"
+              type="text"
+              placeholder="Name or email"
+              value={startedByFilter}
+              onChange={(event) => setStartedByFilter(event.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="date-from-filter">Date range</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                id="date-from-filter"
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+              />
+              <Input
+                id="date-to-filter"
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+              />
+            </div>
+          </div>
+          {showWorkflowFilter ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="workflow-filter">Workflow</Label>
+              <Select
+                value={workflowFilter}
+                onValueChange={setWorkflowFilter}
+                disabled={workflowFilterOptions.length === 0}
+              >
+                <SelectTrigger id="workflow-filter" className="w-full justify-between">
+                  <SelectValue placeholder="All workflows" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All workflows</SelectItem>
+                  {workflowFilterOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={handleResetFilters}>
+            Reset
+          </Button>
+          <Button type="submit" size="sm">
+            Apply filters
+          </Button>
+        </div>
+      </form>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Date</TableHead>
+              <TableHead>Workflow</TableHead>
+              <TableHead className="w-[140px]">Status</TableHead>
+              <TableHead className="w-[120px] text-right">Duration</TableHead>
+              <TableHead className="w-[160px] text-right">Result</TableHead>
+              <TableHead className="w-[200px]">Started by</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
           {items.map((item) => {
             const meta = STATUS_META[item.status];
 
@@ -177,18 +381,24 @@ export function ClientExecutionsTable({ items, timezone }: ClientExecutionsTable
                     </Button>
                   )}
                 </TableCell>
+                <TableCell className="align-middle text-sm text-muted-foreground">
+                  {item.startedByUserName?.trim()
+                    ? item.startedByUserName
+                    : item.startedByUserEmail ?? "—"}
+                </TableCell>
               </TableRow>
             );
           })}
           {items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-12 text-center text-sm text-muted-foreground">
+              <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
                 No executions found.
               </TableCell>
             </TableRow>
           ) : null}
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

@@ -22,7 +22,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   DEFAULT_CLIENT_EXECUTIONS_PER_PAGE,
   getClientExecutions,
+  getClientWorkflowFilterOptions,
   parseClientExecutionQuery,
+  resolveClientExecutionFilters,
   type ClientExecutionListParams,
 } from "@/lib/client/executions";
 
@@ -57,9 +59,14 @@ async function ExecutionsContent({
     } satisfies ClientExecutionListParams;
   }
 
+  const filters = resolveClientExecutionFilters(resolvedSearchParams);
+
   let data;
   try {
-    data = await getClientExecutions({ params });
+    data = await getClientExecutions({
+      params,
+      filters,
+    });
   } catch (error) {
     console.error("Failed to load client executions", error);
     return <ErrorState />;
@@ -69,6 +76,10 @@ async function ExecutionsContent({
     return <NoClientAssignment profileName={data.profile.clientName} />;
   }
 
+  const workflowFilterOptions = await getClientWorkflowFilterOptions({
+    clientId: data.profile.clientId,
+  });
+
   const { executions, pagination } = data;
   const range = computeRange(pagination.page, pagination.perPage, pagination.total);
   const prevHref = pagination.prevPage
@@ -77,6 +88,14 @@ async function ExecutionsContent({
   const nextHref = pagination.nextPage
     ? buildPageHref(pagination.nextPage, pagination.perPage, resolvedSearchParams)
     : null;
+  const hasActiveFilters =
+    (filters.status?.length ?? 0) > 0 ||
+    Boolean(filters.startedBy) ||
+    Boolean(filters.startedFrom) ||
+    Boolean(filters.startedTo) ||
+    Boolean(filters.workflowId) ||
+    Boolean(filters.mineOnly);
+  const tableKey = JSON.stringify(resolvedSearchParams);
 
   return (
     <div className="flex flex-col gap-8">
@@ -98,20 +117,22 @@ async function ExecutionsContent({
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-lg">History &amp; Results</CardTitle>
-            <CardDescription>
-              Only executions from your workspace appear here. Data refreshes automatically as runs complete.
-            </CardDescription>
-          </div>
+          <CardDescription>
+            Only executions from your workspace appear here. Data refreshes automatically as runs complete.
+          </CardDescription>
+        </div>
           <Badge variant="outline">Latest first</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
-          {executions.length > 0 ? (
-            <ClientExecutionsTable items={executions} timezone={TIMEZONE} />
-          ) : (
-            <EmptyState />
-          )}
+          <ClientExecutionsTable
+            key={tableKey}
+            items={executions}
+            timezone={TIMEZONE}
+            workflowFilterOptions={workflowFilterOptions}
+          />
+          {executions.length === 0 && !hasActiveFilters ? <EmptyState /> : null}
         </CardContent>
-        {executions.length > 0 ? (
+        {pagination.total > 0 ? (
           <CardFooter className="flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
               {pagination.total === 0

@@ -24,6 +24,7 @@ import {
   DEFAULT_CLIENT_EXECUTIONS_PER_PAGE,
   getClientExecutions,
   parseClientExecutionQuery,
+  resolveClientExecutionFilters,
   type ClientExecutionListParams,
 } from "@/lib/client/executions";
 import { getWorkflowRunData } from "@/lib/client/workflow-run";
@@ -162,11 +163,14 @@ async function HistoryContent({
     };
   }
 
+  const filters = resolveClientExecutionFilters(resolvedSearchParams);
+  filters.workflowId = workflowId;
+
   let executionsResult;
   try {
     executionsResult = await getClientExecutions({
       params,
-      filters: { workflowId },
+      filters,
       supabase,
     });
   } catch (error) {
@@ -182,6 +186,13 @@ async function HistoryContent({
   }
 
   const { executions, pagination } = executionsResult;
+  const hasActiveFilters =
+    (filters.status?.length ?? 0) > 0 ||
+    Boolean(filters.startedBy) ||
+    Boolean(filters.startedFrom) ||
+    Boolean(filters.startedTo) ||
+    Boolean(filters.mineOnly);
+  const tableKey = JSON.stringify(resolvedSearchParams);
   const range = computeRange(pagination.page, pagination.perPage, pagination.total);
   const prevHref = pagination.prevPage
     ? buildPageHref(workflowId, pagination.prevPage, pagination.perPage, resolvedSearchParams)
@@ -231,18 +242,22 @@ async function HistoryContent({
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {executions.length > 0 ? (
-            <ClientExecutionsTable items={executions} timezone={TIMEZONE} />
-          ) : (
+          <ClientExecutionsTable
+            key={tableKey}
+            items={executions}
+            timezone={TIMEZONE}
+            showWorkflowFilter={false}
+          />
+          {executions.length === 0 && !hasActiveFilters ? (
             <div className="flex flex-col gap-2 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
               <span>No executions recorded for this workflow yet.</span>
               <span>
                 Start a run to see activity here.
               </span>
             </div>
-          )}
+          ) : null}
         </CardContent>
-        {executions.length > 0 ? (
+        {pagination.total > 0 ? (
           <CardFooter className="flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
               {pagination.total === 0
