@@ -1,16 +1,15 @@
-import { getSupabaseServerClient, getSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
+
+import { CreateUserForm } from "@/components/admin/users/create-user-form";
+import { DeleteUserButton } from "@/components/admin/users/delete-user-button";
+import { assertAdmin, updateUserAction } from "./actions";
+import type { ClientOption } from "@/lib/admin/users/types";
 
 interface UserProfile {
   id: string;
   email: string | null;
   role: "ADMIN" | "CLIENT";
   client_id: string | null;
-}
-
-interface ClientOption {
-  id: string;
-  name: string;
 }
 
 async function getProfiles(): Promise<UserProfile[]> {
@@ -34,41 +33,17 @@ async function getClients(): Promise<ClientOption[]> {
   }));
 }
 
-async function assertAdmin() {
-  const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error) {
-    throw new Error("Failed to load authenticated user");
-  }
-
-  const user = data.user;
-  if (!user) throw new Error("No session");
-
-  // Prefer definitive check against DB profile role
-  const admin = getSupabaseServiceRoleClient();
-  const { data: me } = await admin
-    .from("user_profile")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (me?.role !== "ADMIN") {
-    const metadataRole = user.app_metadata?.role;
-    if (metadataRole !== "ADMIN") {
-      // Fallback to metadata-based guard (in case claims are enriched)
-      throw new Error("Not authorized");
-    }
-  }
-}
 
 export default async function UsersAdminPage() {
-  await assertAdmin();
+  const viewer = await assertAdmin();
   const [profiles, clients] = await Promise.all([getProfiles(), getClients()]);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Users</h1>
       <p className="text-sm text-zinc-600">Promote users to ADMIN and assign client mapping.</p>
+
+      <CreateUserForm clients={clients} />
 
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -109,7 +84,9 @@ export default async function UsersAdminPage() {
                   </form>
                 </td>
                 <td className="p-2">{u.client_id ?? "—"}</td>
-                <td className="p-2"></td>
+                <td className="p-2 text-right">
+                  <DeleteUserButton userId={u.id} email={u.email} disabled={viewer.id === u.id} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -117,26 +94,4 @@ export default async function UsersAdminPage() {
       </div>
     </div>
   );
-}
-
-export async function updateUserAction(formData: FormData) {
-  "use server";
-  await assertAdmin();
-
-  const id = String(formData.get("id") || "");
-  const role = String(formData.get("role") || "CLIENT");
-  const client_id_raw = String(formData.get("client_id") || "").trim();
-  const client_id = client_id_raw.length ? client_id_raw : null;
-
-  if (!id) throw new Error("Missing user id");
-  if (role !== "ADMIN" && role !== "CLIENT") throw new Error("Invalid role");
-
-  const admin = getSupabaseServiceRoleClient();
-  const { error } = await admin
-    .from("user_profile")
-    .update({ role, client_id })
-    .eq("id", id);
-
-  if (error) throw error;
-  revalidatePath("/admin/users");
 }
