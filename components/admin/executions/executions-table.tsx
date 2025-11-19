@@ -487,6 +487,7 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
                 <TableHead className="w-[120px]">Status</TableHead>
                 <TableHead>Workflow</TableHead>
                 <TableHead>Client</TableHead>
+                <TableHead>Started by</TableHead>
                 <TableHead className="w-[180px]">
                   <Button
                     type="button"
@@ -530,7 +531,7 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
             <TableBody>
               {result.data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-12 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={11} className="py-12 text-center text-sm text-muted-foreground">
                     No executions match the current filters.
                   </TableCell>
                 </TableRow>
@@ -552,6 +553,11 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
                   </TableCell>
                   <TableCell>{row.workflowName}</TableCell>
                   <TableCell>{row.clientName}</TableCell>
+                  <TableCell>
+                    {row.startedByUserName?.trim()
+                      ? row.startedByUserName
+                      : row.startedByUserEmail ?? "—"}
+                  </TableCell>
                   <TableCell>{formatDateTime(row.startedAt, timezone)}</TableCell>
                   <TableCell>{formatDuration(row.durationMs)}</TableCell>
                   <TableCell>{formatCostAmount(row.totalCost, row.costCurrency)}</TableCell>

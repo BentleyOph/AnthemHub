@@ -59,6 +59,7 @@ type ExecutionRow = {
   source: string | null;
   workflow_id: string;
   client_id: string;
+  user_id: string | null;
   started_at: string;
   finished_at: string | null;
   result_file_url: string | null;
@@ -69,6 +70,7 @@ type ExecutionRow = {
   cost_breakdown?: unknown;
   workflow: { id: string; name: string | null } | null;
   client: { id: string; name: string | null } | null;
+  user: { id: string; name: string | null; email: string | null } | null;
 };
 
 type ExecutionEventRow = {
@@ -88,6 +90,9 @@ export type ExecutionListItem = {
   workflowName: string;
   clientId: string;
   clientName: string;
+  startedByUserId: string | null;
+  startedByUserName: string | null;
+  startedByUserEmail: string | null;
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
@@ -106,6 +111,9 @@ export type ExecutionDetail = {
   workflowName: string;
   clientId: string;
   clientName: string;
+  startedByUserId: string | null;
+  startedByUserName: string | null;
+  startedByUserEmail: string | null;
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
@@ -230,6 +238,7 @@ export async function listExecutions(
         source,
         workflow_id,
         client_id,
+        user_id,
         started_at,
         finished_at,
         result_file_url,
@@ -238,7 +247,8 @@ export async function listExecutions(
         total_cost,
         cost_currency,
         workflow:workflow ( id, name ),
-        client:client ( id, name )
+        client:client ( id, name ),
+        user:user_profile!execution_user_id_fkey ( id, name, email )
       `,
       { count: "exact" },
     )
@@ -306,6 +316,9 @@ export async function listExecutions(
     workflowName: row.workflow?.name ?? "Unknown workflow",
     clientId: row.client_id,
     clientName: row.client?.name ?? "Unknown client",
+    startedByUserId: row.user?.id ?? null,
+    startedByUserName: row.user?.name ?? null,
+    startedByUserEmail: row.user?.email ?? null,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
     durationMs: computeDurationMs(row),
@@ -350,6 +363,7 @@ export async function getExecutionDetail(id: string): Promise<ExecutionDetail | 
         source,
         workflow_id,
         client_id,
+        user_id,
         started_at,
         finished_at,
         result_file_url,
@@ -361,7 +375,8 @@ export async function getExecutionDetail(id: string): Promise<ExecutionDetail | 
         cost_currency,
         cost_breakdown,
         workflow:workflow ( id, name ),
-        client:client ( id, name )
+        client:client ( id, name ),
+        user:user_profile!execution_user_id_fkey ( id, name, email )
       `,
     )
     .eq("id", id)
@@ -388,6 +403,9 @@ export async function getExecutionDetail(id: string): Promise<ExecutionDetail | 
     workflowName: row.workflow?.name ?? "Unknown workflow",
     clientId: row.client_id,
     clientName: row.client?.name ?? "Unknown client",
+    startedByUserId: row.user?.id ?? null,
+    startedByUserName: row.user?.name ?? null,
+    startedByUserEmail: row.user?.email ?? null,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
     durationMs: computeDurationMs(row),
