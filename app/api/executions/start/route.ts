@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
     .insert({
       workflow_id: workflowRow.id,
       client_id: accessContext.profile.clientId,
+      user_id: authData.user.id,
       status: "PROCESSING",
       source: "USER",
       input_payload: parsedInput,
