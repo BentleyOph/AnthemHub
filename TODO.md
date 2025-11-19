@@ -51,3 +51,29 @@
 
 - [ ] **Validation**
   - Verify that updating a user’s client via the dropdown works for assigning, clearing, and switching clients, and that role updates still function.
+
+## Feature: Admin-created users
+
+- [x] **Data/API: Admin action for creating users**
+  - Add a server action (e.g. `createUserAction`) that validates name/email/password/role/client, creates the auth user via Supabase admin client, and inserts/updates the corresponding `user_profile` row.
+  - Store role + client assignment consistently (metadata + user_profile) and surface helpful errors when the email already exists or password policy fails.
+
+- [x] **UI: User creation form**
+  - On `/admin/users`, add a form (modal or inline card) with inputs for Name, Email, Password, Role selector, and Client dropdown (reuse the fetched clients) that posts to the new action.
+  - Reset the form and refresh the users list on success; show inline validation/errors when creation fails.
+
+- [ ] **Validation**
+  - Manually create both admin and client users, confirming they appear in the table, have the right role/client mapping, and can log in with the provided credentials.
+
+## Feature: Admin user deletion
+
+- [x] **Data/API: Delete user action**
+  - Add a server action that asserts admin permissions, removes the Supabase auth user (via admin API), and deletes the related `user_profile` row.
+  - Handle cases where auth deletion fails (e.g. already removed) and surface meaningful errors.
+
+- [x] **UI: Delete controls**
+  - In `/admin/users`, add a delete button per user row with a confirmation step before invoking the server action.
+  - Show success/error feedback and refresh the table after deletion.
+
+- [ ] **Validation**
+  - Verify deleting both admin and client users works (with safeguards so you can't delete the currently logged-in admin), and that removed users lose access.
