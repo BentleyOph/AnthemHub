@@ -572,11 +572,14 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     : null;
 
   const userRows = (usersResult.data ?? []) as ClientUserRow[];
-  const users = userRows.map((row) => ({
-    id: row.id,
-    email: row.email,
-    role: row.role === "ADMIN" ? "ADMIN" : "CLIENT",
-  }));
+  const users = userRows.map((row) => {
+    const role: "ADMIN" | "CLIENT" = row.role === "ADMIN" ? "ADMIN" : "CLIENT";
+    return {
+      id: row.id,
+      email: row.email,
+      role,
+    };
+  });
 
   const workflowUsageRows = (workflowUsageResult.data ?? []) as ClientWorkflowUsageRow[];
   const workflowUsage = workflowUsageRows.map((row, index) => {
