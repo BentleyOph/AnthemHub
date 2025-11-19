@@ -36,6 +36,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SingleDatePicker } from "@/components/ui/date-picker";
+import { dateToBoundaryIso, parseISODate } from "@/lib/dates";
 
 type FilterOptions = {
   workflows: Array<{ id: string; name: string }>;
@@ -49,8 +51,8 @@ type FiltersState = {
   workflows: string[];
   statuses: ExecutionStatus[];
   clients: string[];
-  from: string;
-  to: string;
+  from: Date | null;
+  to: Date | null;
   search: string;
 };
 
@@ -90,25 +92,6 @@ function formatDuration(ms: number | null): string {
   return parts.join(" ") || "0s";
 }
 
-function isoToDateInput(value: string | null | undefined): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  return date.toISOString().slice(0, 10);
-}
-
-function dateInputToIso(value: string, endOfDay = false): string | null {
-  if (!value) return null;
-  const isoCandidate = endOfDay ? `${value}T23:59:59.999` : `${value}T00:00:00.000`;
-  const date = new Date(isoCandidate);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toISOString();
-}
-
 function truncateId(id: string, length = 10): string {
   if (id.length <= length) return id;
   return `${id.slice(0, length)}…`;
@@ -133,8 +116,8 @@ function makeInitialFilters(applied: AppliedFilters): FiltersState {
     workflows: [...applied.workflowIds],
     statuses: [...applied.status],
     clients: [...applied.clientIds],
-    from: isoToDateInput(applied.from),
-    to: isoToDateInput(applied.to),
+    from: parseISODate(applied.from),
+    to: parseISODate(applied.to),
     search: applied.q ?? "",
   };
 }
@@ -199,8 +182,8 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
       if (clientId) params.append("client_id", clientId);
     });
 
-    const fromIso = dateInputToIso(targetFilters.from, false);
-    const toIso = dateInputToIso(targetFilters.to, true);
+    const fromIso = dateToBoundaryIso(targetFilters.from, "start");
+    const toIso = dateToBoundaryIso(targetFilters.to, "end");
 
     if (fromIso) params.set("from", fromIso);
     if (toIso) params.set("to", toIso);
@@ -220,8 +203,8 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
       workflows: [],
       statuses: [],
       clients: [],
-      from: "",
-      to: "",
+      from: null,
+      to: null,
       search: "",
     });
     setPerPage("20");
@@ -411,22 +394,25 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>From</Label>
-            <Input
-              type="date"
+            <Label htmlFor="admin-date-from">From</Label>
+            <SingleDatePicker
+              id="admin-date-from"
               value={filters.from}
-              onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))}
-              max={filters.to || undefined}
+              onChange={(date) => setFilters((prev) => ({ ...prev, from: date }))}
+              className="w-56"
+              maxDate={filters.to ?? undefined}
+              align="end"
             />
           </div>
-
           <div className="flex flex-col gap-2">
-            <Label>To</Label>
-            <Input
-              type="date"
+            <Label htmlFor="admin-date-to">To</Label>
+            <SingleDatePicker
+              id="admin-date-to"
               value={filters.to}
-              onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))}
-              min={filters.from || undefined}
+              onChange={(date) => setFilters((prev) => ({ ...prev, to: date }))}
+              className="w-56"
+              minDate={filters.from ?? undefined}
+              align="end"
             />
           </div>
 
