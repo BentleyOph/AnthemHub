@@ -7,22 +7,8 @@ import type { ClientExecutionFilterOptions, ClientExecutionStatus } from "@/lib/
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-
-function isoToDateInput(value: string | null): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 10);
-}
-
-function dateInputToIso(value: string, endOfDay = false): string | null {
-  if (!value) return null;
-  const isoCandidate = endOfDay ? `${value}T23:59:59.999` : `${value}T00:00:00.000`;
-  const date = new Date(isoCandidate);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-}
+import { SingleDatePicker } from "@/components/ui/date-picker";
+import { dateToBoundaryIso, parseISODate } from "@/lib/dates";
 
 export type ClientExecutionFiltersState = {
   workflowId: string | null;
@@ -42,8 +28,8 @@ type FormState = {
   workflowId: string;
   status: ClientExecutionStatus | "";
   userId: string;
-  from: string;
-  to: string;
+  from: Date | null;
+  to: Date | null;
 };
 
 function createFormStateFromFilters(filters: ClientExecutionFiltersState): FormState {
@@ -51,8 +37,8 @@ function createFormStateFromFilters(filters: ClientExecutionFiltersState): FormS
     workflowId: filters.workflowId ?? "",
     status: filters.status ?? "",
     userId: filters.userId ?? "",
-    from: isoToDateInput(filters.from),
-    to: isoToDateInput(filters.to),
+    from: parseISODate(filters.from),
+    to: parseISODate(filters.to),
   } satisfies FormState;
 }
 
@@ -61,13 +47,19 @@ function createEmptyFormState(): FormState {
     workflowId: "",
     status: "",
     userId: "",
-    from: "",
-    to: "",
+    from: null,
+    to: null,
   } satisfies FormState;
 }
 
 const serializeFormState = (state: FormState): string =>
-  [state.workflowId, state.status, state.userId, state.from, state.to].join("|");
+  [
+    state.workflowId,
+    state.status,
+    state.userId,
+    state.from ? state.from.toISOString() : "",
+    state.to ? state.to.toISOString() : "",
+  ].join("|");
 
 export function ClientExecutionFilters({ filters, options, viewerUserId }: Props) {
   const initialFormState = createFormStateFromFilters(filters);
@@ -134,8 +126,8 @@ function ClientExecutionFiltersForm({ initialFormState, options, viewerUserId }:
       params.delete("user_id");
     }
 
-    const fromIso = dateInputToIso(formState.from, false);
-    const toIso = dateInputToIso(formState.to, true);
+    const fromIso = dateToBoundaryIso(formState.from, "start");
+    const toIso = dateToBoundaryIso(formState.to, "end");
 
     if (fromIso) {
       params.set("from", fromIso);
@@ -227,20 +219,22 @@ function ClientExecutionFiltersForm({ initialFormState, options, viewerUserId }:
         </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor="client-filter-from">From</Label>
-          <Input
+          <SingleDatePicker
             id="client-filter-from"
-            type="date"
+            className="w-40"
             value={formState.from}
-            onChange={(event) => setFormState((prev) => ({ ...prev, from: event.target.value }))}
+            onChange={(date) => setFormState((prev) => ({ ...prev, from: date }))}
+            maxDate={formState.to ?? undefined}
           />
         </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor="client-filter-to">To</Label>
-          <Input
+          <SingleDatePicker
             id="client-filter-to"
-            type="date"
+            className="w-40"
             value={formState.to}
-            onChange={(event) => setFormState((prev) => ({ ...prev, to: event.target.value }))}
+            onChange={(date) => setFormState((prev) => ({ ...prev, to: date }))}
+            minDate={formState.from ?? undefined}
           />
         </div>
       </div>
