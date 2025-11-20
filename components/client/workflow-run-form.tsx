@@ -52,6 +52,7 @@ interface WorkflowRunFormProps {
   workflowName: string;
   schema: JsonSchema | null;
   disabled?: boolean;
+  prefillInput?: unknown;
 }
 
 type ErrorMap = Record<string, string[]>;
@@ -119,16 +120,89 @@ function resolveSchemaType(schema: JsonSchema | null | undefined): string | unde
   return schema.type;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function cloneValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneValue(item));
+  }
+  if (isPlainObject(value)) {
+    const cloned: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value)) {
+      cloned[key] = cloneValue(child);
+    }
+    return cloned;
+  }
+  return value;
+}
+
+function cloneRecord(value: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) {
+    result[key] = cloneValue(child);
+  }
+  return result;
+}
+
+function mergeRecords(
+  base: Record<string, unknown>,
+  overrides: Record<string, unknown>,
+): Record<string, unknown> {
+  const keys = new Set([...Object.keys(base), ...Object.keys(overrides)]);
+  const result: Record<string, unknown> = {};
+
+  for (const key of keys) {
+    const baseValue = base[key];
+    const overrideValue = overrides[key];
+
+    if (overrideValue === undefined) {
+      result[key] = cloneValue(baseValue);
+      continue;
+    }
+
+    if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+      result[key] = mergeRecords(baseValue, overrideValue);
+      continue;
+    }
+
+    if (Array.isArray(overrideValue)) {
+      result[key] = overrideValue.map((item) => cloneValue(item));
+      continue;
+    }
+
+    result[key] = cloneValue(overrideValue);
+  }
+
+  return result;
+}
+
+function mergeFormValues(
+  defaults: Record<string, unknown>,
+  prefillInput: unknown,
+): Record<string, unknown> {
+  if (isPlainObject(prefillInput)) {
+    return mergeRecords(defaults, prefillInput);
+  }
+  return cloneRecord(defaults);
+}
+
 export function WorkflowRunForm({
   workflowId,
   workflowName,
   schema,
   disabled = false,
+  prefillInput,
 }: WorkflowRunFormProps) {
   const router = useRouter();
   const zodSchema = useMemo(() => jsonSchemaToZod(schema), [schema]);
   const defaults = useMemo(() => jsonSchemaDefaultValues(schema), [schema]);
-  const [formData, setFormData] = useState<Record<string, unknown>>(() => defaults);
+  const initialValues = useMemo(
+    () => mergeFormValues(defaults, prefillInput),
+    [defaults, prefillInput],
+  );
+  const [formData, setFormData] = useState<Record<string, unknown>>(() => initialValues);
   const [errors, setErrors] = useState<ErrorMap>({});
   const [uploadingFields, setUploadingFields] = useState<UploadStateMap>({});
   const [selectedFiles, setSelectedFiles] = useState<SelectedFileMap>({});
@@ -136,11 +210,11 @@ export function WorkflowRunForm({
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
-    setFormData(defaults);
+    setFormData(initialValues);
     setErrors({});
     setSelectedFiles({});
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [defaults]);
+  }, [initialValues]);
 
   // A utility function to clear errors for a specific field prefix
   function clearErrorsForPrefix(prefix: string) {

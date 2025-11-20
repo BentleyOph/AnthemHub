@@ -287,7 +287,7 @@ function RecentActivitySection({
                   <TableCell>{formatDateTime(execution.startedAt)}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="ghost" asChild>
-                      <Link href={`/workflows/${execution.workflowId}/run`}>
+                      <Link href={`/workflows/${execution.workflowId}/run?prefill=${execution.id}`}>
                         Run again
                       </Link>
                     </Button>

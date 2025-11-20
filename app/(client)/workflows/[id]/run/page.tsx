@@ -19,7 +19,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getClientExecutionDetail } from "@/lib/client/execution-detail";
 import { getWorkflowRunData } from "@/lib/client/workflow-run";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Africa/Nairobi";
 
@@ -29,37 +31,52 @@ interface WorkflowRunPageProps {
   params: Promise<{
     id: string;
   }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) {
+export default async function WorkflowRunPage({ params, searchParams }: WorkflowRunPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const prefillExecutionId = firstValue(resolvedSearchParams.prefill);
 
   return (
     <Suspense fallback={<RunSkeleton />}>
-      <WorkflowRunContent workflowId={id} />
+      <WorkflowRunContent workflowId={id} prefillExecutionId={prefillExecutionId} />
     </Suspense>
   );
 }
 
-async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
-  const data = await getWorkflowRunData(workflowId);
+async function WorkflowRunContent({
+  workflowId,
+  prefillExecutionId,
+}: {
+  workflowId: string;
+  prefillExecutionId?: string | undefined;
+}) {
+  const supabase = await getSupabaseServerClient();
+  const data = await getWorkflowRunData(workflowId, { supabase });
 
   if (!data) {
     notFound();
   }
 
-  const { workflow, hasAccess, request, assignedAt, profile, canRequest, presets } =
+  const { workflow, hasAccess, request, assignedAt, canRequest, presets } =
     data;
+  let prefillInput: unknown = null;
+
+  if (prefillExecutionId) {
+    try {
+      const executionDetail = await getClientExecutionDetail(prefillExecutionId, { supabase });
+      if (executionDetail?.execution.workflowId === workflowId) {
+        prefillInput = executionDetail.execution.inputPayload ?? null;
+      }
+    } catch (error) {
+      console.error("Failed to resolve workflow run prefill input", error);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
-      <ClientNav
-        clientName={profile.clientName}
-        clientCompany={profile.clientCompany}
-        userName={profile.userName}
-        activeHref="/workflows"
-      />
-
       <Button variant="ghost" size="sm" asChild className="w-fit">
         <Link href="/workflows">
           <IconArrowLeft className="mr-2 size-4" /> Back to workflows
@@ -148,11 +165,19 @@ async function WorkflowRunContent({ workflowId }: { workflowId: string }) {
             workflowName={workflow.name}
             schema={workflow.inputSchema}
             disabled={!hasAccess}
+            prefillInput={prefillInput ?? undefined}
           />
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function firstValue(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
 }
 
 function RequestStatusBadge({
@@ -272,7 +297,6 @@ function formatDate(iso: string | null): string | null {
 function RunSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <Skeleton className="h-24 rounded-xl" />
       <Skeleton className="h-8 w-32" />
       <Card>
         <CardHeader className="space-y-4">
