@@ -17,7 +17,7 @@ import type {
   ExecutionEventsResult,
 } from "@/lib/admin/executions/data";
 import { formatCostAmount, normalizeCostPayload } from "@/lib/costs";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,10 +60,10 @@ function formatDuration(ms: number | null): string {
   return parts.length > 0 ? parts.join(" ") : "0s";
 }
 
-function statusBadgeVariant(status: ExecutionDetail["status"]): "default" | "secondary" | "destructive" | "outline" {
+function statusBadgeVariant(status: ExecutionDetail["status"]): BadgeVariant {
   switch (status) {
     case "SUCCESS":
-      return "secondary";
+      return "success";
     case "ERROR":
       return "destructive";
     case "PROCESSING":

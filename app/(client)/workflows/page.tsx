@@ -215,7 +215,7 @@ function statusVariant(status: ExecutionStatus): React.ComponentProps<
 >["variant"] {
   switch (status) {
     case "SUCCESS":
-      return "default";
+      return "success";
     case "PROCESSING":
     case "PENDING":
       return "secondary";

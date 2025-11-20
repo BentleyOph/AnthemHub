@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { useExecutionStream } from "@/hooks/use-execution-stream";
 
 type ExecutionStatus = "PENDING" | "PROCESSING" | "SUCCESS" | "ERROR";
@@ -11,11 +11,8 @@ type Props = {
   isLive: boolean;
 };
 
-const STATUS_CONFIG: Record<
-  ExecutionStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-> = {
-  SUCCESS: { label: "Complete", variant: "secondary" },
+const STATUS_CONFIG: Record<ExecutionStatus, { label: string; variant: BadgeVariant }> = {
+  SUCCESS: { label: "Complete", variant: "success" },
   ERROR: { label: "Failed", variant: "destructive" },
   PROCESSING: { label: "Processing", variant: "outline" },
   PENDING: { label: "Queued", variant: "outline" },
