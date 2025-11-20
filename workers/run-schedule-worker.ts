@@ -41,6 +41,8 @@ type ScheduleRow = {
   } | null;
 };
 
+const SCHEDULE_STARTER_FALLBACK_NAME = "Workflow schedule";
+
 function resolveCallbackUrl(): string {
   const base =
     process.env.APP_BASE_URL?.trim() ??
@@ -77,6 +79,42 @@ function normalizeJobInput(
   }
 
   return { value: payload ?? null };
+}
+
+async function resolveScheduleStarter(
+  createdBy: string | null,
+): Promise<{ name: string; email: string | null }> {
+  if (!supabase || !createdBy) {
+    return { name: SCHEDULE_STARTER_FALLBACK_NAME, email: null };
+  }
+
+  const { data, error } = await supabase
+    .from("user_profile")
+    .select("name, email")
+    .eq("id", createdBy)
+    .maybeSingle<{ name: string | null; email: string | null }>();
+
+  if (error || !data) {
+    if (error) {
+      console.error("[schedule-worker] Failed to resolve schedule starter", {
+        createdBy,
+        error,
+      });
+    }
+    return { name: SCHEDULE_STARTER_FALLBACK_NAME, email: null };
+  }
+
+  const name =
+    data.name && data.name.trim().length > 0
+      ? data.name
+      : data.email?.trim().length
+        ? data.email
+        : SCHEDULE_STARTER_FALLBACK_NAME;
+
+  return {
+    name,
+    email: data.email && data.email.trim().length > 0 ? data.email : null,
+  };
 }
 
 async function processScheduleJob(job: Job<ScheduleJob>) {
@@ -149,6 +187,7 @@ async function processScheduleJob(job: Job<ScheduleJob>) {
 
   const now = new Date().toISOString();
   const inputPayload = preset.input_payload ?? {};
+  const starter = await resolveScheduleStarter(preset.created_by);
 
   const { data: execution, error: executionError } = await supabase
     .from("execution")
@@ -159,6 +198,8 @@ async function processScheduleJob(job: Job<ScheduleJob>) {
       status: "PROCESSING",
       source: "SYSTEM",
       started_at: now,
+      started_by_name: starter.name,
+      started_by_email: starter.email,
     })
     .select("id")
     .single<{ id: string }>();

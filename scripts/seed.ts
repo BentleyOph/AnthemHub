@@ -214,6 +214,9 @@ async function main() {
           workflow_id: workflowId,
           status: "SUCCESS",
           source: "USER",
+          user_id: clientUser.id,
+          started_by_name: clientUserEmail,
+          started_by_email: clientUserEmail,
           input_payload: { topic: "AI in Logistics", length: "medium" },
           output_payload: { summary: "Seeded execution output", score: 0.95 },
           n8n_run_id: "seed-12345",
@@ -258,4 +261,3 @@ main().catch((e) => {
   console.error("Seed failed:", e);
   process.exit(1);
 });
-
