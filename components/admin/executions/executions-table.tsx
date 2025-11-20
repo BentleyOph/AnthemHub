@@ -16,7 +16,7 @@ import {
 
 import type { ExecutionListResult, ExecutionSort, ExecutionStatus } from "@/lib/admin/executions/data";
 import { formatCostAmount } from "@/lib/costs";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -97,10 +97,10 @@ function truncateId(id: string, length = 10): string {
   return `${id.slice(0, length)}…`;
 }
 
-function statusBadgeVariant(status: ExecutionStatus): "default" | "secondary" | "destructive" | "outline" {
+function statusBadgeVariant(status: ExecutionStatus): BadgeVariant {
   switch (status) {
     case "SUCCESS":
-      return "secondary";
+      return "success";
     case "ERROR":
       return "destructive";
     case "PROCESSING":

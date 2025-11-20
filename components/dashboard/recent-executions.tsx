@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -42,8 +42,8 @@ const defaults: RecentExecutionItem[] = [
 ];
 
 function StatusBadge({ s }: { s: RecentExecutionItem["status"] }) {
-  const map: Record<RecentExecutionItem["status"], "secondary" | "destructive" | "outline" | "default"> = {
-    SUCCESS: "secondary",
+  const map: Record<RecentExecutionItem["status"], BadgeVariant> = {
+    SUCCESS: "success",
     ERROR: "destructive",
     PROCESSING: "outline",
     PENDING: "outline",

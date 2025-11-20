@@ -14,7 +14,7 @@ import type {
   ClientExecutionListItem,
   ClientExecutionStatus,
 } from "@/lib/client/executions";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,13 +42,13 @@ const STATUS_META: Record<
   ClientExecutionStatus,
   {
     label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
+    variant: BadgeVariant;
     icon: ReactNode;
   }
 > = {
   SUCCESS: {
     label: "Complete",
-    variant: "secondary",
+    variant: "success",
     icon: <IconCircleCheck className="size-3" />, 
   },
   ERROR: {

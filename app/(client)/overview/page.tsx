@@ -466,10 +466,10 @@ function formatDuration(durationMs: number | null): string {
 
 function statusBadgeVariant(
   status: ClientOverviewExecution["status"],
-): "default" | "secondary" | "destructive" | "outline" {
+): BadgeVariant {
   switch (status) {
     case "SUCCESS":
-      return "secondary";
+      return "success";
     case "ERROR":
       return "destructive";
     case "PROCESSING":
