@@ -121,7 +121,7 @@ function AssignedWorkflowsSection({
         <div>
           <h1 className="text-2xl font-semibold">My Workflows</h1>
           <p className="text-sm text-muted-foreground">
-            Quick access to what your team runs most, {clientName}.
+            Quick access to what your team runs most.
           </p>
         </div>
         <Button variant="ghost" size="sm" asChild>
@@ -215,8 +215,11 @@ function MetricsSection({ metrics }: { metrics: ClientOverviewMetrics }) {
     },
     {
       label: "Time saved (est)",
-      value: formatTimeSaved(70),
-      hint: "Across successful runs this month",
+      value: formatTimeSaved(metrics.timeSavedMinutes30d),
+      hint:
+        metrics.timeSavedMinutes30d === null
+          ? "Add workflow estimates to surface savings."
+          : "Across successful runs in the last 30 days",
       icon: <IconRocket className="size-4" />,
     },
   ];
