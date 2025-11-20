@@ -92,11 +92,11 @@ type DiscoverWorkflowRow = {
   icon_url: string | null;
 };
 
-type ExecutionWithEstimateRow = {
-  workflow: {
-    estimated_minutes_saved: number | null;
-  } | null;
-};
+// type ExecutionWithEstimateRow = {
+//   workflow: {
+//     estimated_minutes_saved: number | null;
+//   } | null;
+// };
 
 function computeDurationMs(
   startedAt: string,
@@ -130,10 +130,13 @@ function isMissingColumnError(
 }
 
 async function computeEstimatedTimeSavedMinutes(
-  supabase: SupabaseClient,
-  clientId: string,
-  sinceIso: string,
+  _supabase: SupabaseClient,
+  _clientId: string,
+  _sinceIso: string,
 ): Promise<number | null> {
+  // TODO: Re-enable once workflow.estimated_minutes_saved exists in production schema.
+  return null;
+  /*
   try {
     const { data, error } = await supabase
       .from("execution")
@@ -158,33 +161,21 @@ async function computeEstimatedTimeSavedMinutes(
     }
 
     const rows = (data ?? []) as ExecutionWithEstimateRow[];
-    if (rows.length === 0) {
-      return 0;
-    }
-
-    let hasEstimate = false;
     const totalMinutes = rows.reduce((acc, row) => {
       const minutes = row.workflow?.estimated_minutes_saved;
       if (minutes === null || minutes === undefined) {
         return acc;
       }
       const numeric = Number(minutes);
-      if (!Number.isFinite(numeric)) {
-        return acc;
-      }
-      hasEstimate = true;
-      return acc + numeric;
+      return Number.isFinite(numeric) ? acc + numeric : acc;
     }, 0);
-
-    if (!hasEstimate) {
-      return null;
-    }
 
     return totalMinutes > 0 ? totalMinutes : 0;
   } catch (error) {
     console.error("Unexpected failure while computing time saved", error);
     return null;
   }
+  */
 }
 
 export async function getClientOverviewData(): Promise<ClientOverviewData> {
