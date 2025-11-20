@@ -107,7 +107,7 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
                   size="sm"
                   asChild
                 >
-                  <Link href={`/workflows/${execution.workflowId}/run`}>
+                  <Link href={`/workflows/${execution.workflowId}/run?prefill=${execution.id}`}>
                     <IconPlayerPlay className="mr-2 size-4" />
                     Run again
                   </Link>
