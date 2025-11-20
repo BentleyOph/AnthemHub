@@ -49,14 +49,17 @@ export default function ClientOverviewPage() {
 
 async function ClientOverviewContent() {
   const data = await getClientOverviewData();
+  const greetingName =
+    data.userName?.trim() ||
+    data.userEmail?.trim() ||
+    data.clientName ||
+    "there";
 
   return (
     <div className="flex flex-col gap-8">
-      <ClientNav
+      <OverviewHero
+        userName={greetingName}
         clientName={data.clientName}
-        clientCompany={data.clientCompany}
-        userName={data.userName}
-        activeHref="/overview"
       />
 
       {data.clientId ? (
@@ -78,6 +81,28 @@ async function ClientOverviewContent() {
         <UnassignedState />
       )}
     </div>
+  );
+}
+
+function OverviewHero({
+  userName,
+  clientName,
+}: {
+  userName: string;
+  clientName: string;
+}) {
+  return (
+    <section className="space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+        Overview
+      </p>
+      <h1 className="text-3xl font-semibold text-foreground md:text-4xl">
+        Welcome back, {userName}
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        Here&apos;s what&apos;s happening across {clientName}.
+      </p>
+    </section>
   );
 }
 
@@ -388,7 +413,7 @@ function UnassignedState() {
 function OverviewSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <Skeleton className="h-24 rounded-xl" />
+      <Skeleton className="h-32 rounded-2xl" />
       <Skeleton className="h-12 w-2/3 max-w-sm" />
       <div className="grid gap-4 md:grid-cols-3">
         <Skeleton className="h-40 rounded-xl" />
