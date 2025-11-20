@@ -6,7 +6,6 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 
-import { ClientNav } from "@/components/client/client-nav";
 import { RequestAccessButton } from "@/components/client/request-access-button";
 import { WorkflowIcon } from "@/components/client/workflow-icon";
 import { WorkflowRunForm } from "@/components/client/workflow-run-form";

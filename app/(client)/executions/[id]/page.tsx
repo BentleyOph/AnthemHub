@@ -8,7 +8,6 @@ import {
   IconPlayerPlay,
 } from "@tabler/icons-react";
 
-import { ClientNav } from "@/components/client/client-nav";
 import { ClientExecutionTimeline } from "@/components/client/execution-timeline";
 import { ClientExecutionStatusBadge } from "@/components/client/execution-status-badge";
 import { ExecutionResult } from "@/components/client/execution-result";
@@ -67,13 +66,6 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
 
   return (
     <div className="flex flex-col gap-8">
-      <ClientNav
-        clientName={profile.clientName}
-        clientCompany={profile.clientCompany}
-        userName={profile.userName}
-        activeHref="/executions"
-      />
-
       <Button variant="ghost" size="sm" asChild className="w-fit">
         <Link href="/executions">
           <IconArrowLeft className="mr-2 size-4" />
@@ -254,7 +246,6 @@ function prettyJson(value: unknown): string {
 function ExecutionDetailSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <Skeleton className="h-24 rounded-xl" />
       <Skeleton className="h-8 w-40" />
       <Card>
         <CardHeader className="space-y-3">

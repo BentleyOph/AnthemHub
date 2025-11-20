@@ -6,7 +6,6 @@ import {
 } from "@tabler/icons-react";
 
 import { ClientExecutionsTable } from "@/components/client/executions-table";
-import { ClientNav } from "@/components/client/client-nav";
 import { RequestAccessButton } from "@/components/client/request-access-button";
 import { WorkflowIcon } from "@/components/client/workflow-icon";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +63,6 @@ async function HistoryContent({
   if (!workflowData) {
     return (
       <div className="flex flex-col gap-8">
-        <ClientNav clientName="My Workspace" clientCompany={null} userName={null} activeHref="/workflows" />
         <Card>
           <CardHeader>
             <CardTitle>Workflow not found</CardTitle>
@@ -97,13 +95,6 @@ async function HistoryContent({
   if (!hasAccess) {
     return (
       <div className="flex flex-col gap-8">
-        <ClientNav
-          clientName={profile.clientName}
-          clientCompany={profile.clientCompany}
-          userName={profile.userName}
-          activeHref="/workflows"
-        />
-
         <Button variant="ghost" size="sm" asChild className="w-fit">
           <Link href="/workflows">
             <IconArrowLeft className="mr-2 size-4" />
@@ -203,13 +194,6 @@ async function HistoryContent({
 
   return (
     <div className="flex flex-col gap-8">
-      <ClientNav
-        clientName={profile.clientName}
-        clientCompany={profile.clientCompany}
-        userName={profile.userName}
-        activeHref="/workflows"
-      />
-
       <Button variant="ghost" size="sm" asChild className="w-fit">
         <Link href="/workflows">
           <IconArrowLeft className="mr-2 size-4" />
@@ -409,7 +393,6 @@ function ErrorState({
 }) {
   return (
     <div className="flex flex-col gap-8">
-      <ClientNav clientName={profileName} clientCompany={profileCompany} userName={null} activeHref="/workflows" />
       <Card className="border-destructive/40 bg-destructive/10">
         <CardHeader>
           <CardTitle className="text-lg">Unable to load history</CardTitle>
@@ -437,7 +420,6 @@ function ErrorState({
 function HistorySkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <Skeleton className="h-20 rounded-xl" />
       <Skeleton className="h-8 w-36" />
       <Card>
         <CardHeader className="flex items-center gap-3">

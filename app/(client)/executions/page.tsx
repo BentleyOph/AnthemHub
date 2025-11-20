@@ -7,7 +7,6 @@ import {
 } from "@tabler/icons-react";
 
 import { ClientExecutionsTable } from "@/components/client/executions-table";
-import { ClientNav } from "@/components/client/client-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,13 +98,6 @@ async function ExecutionsContent({
 
   return (
     <div className="flex flex-col gap-8">
-      <ClientNav
-        clientName={data.profile.clientName}
-        clientCompany={data.profile.clientCompany}
-        userName={data.profile.userName}
-        activeHref="/executions"
-      />
-
       <section className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold">Executions</h1>
         <CardDescription>
@@ -255,7 +247,6 @@ function NoClientAssignment({ profileName }: { profileName: string }) {
 function ExecutionsPageSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <Skeleton className="h-20 rounded-xl" />
       <Skeleton className="h-6 w-48" />
       <Card>
         <CardHeader className="space-y-2">
