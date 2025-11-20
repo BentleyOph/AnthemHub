@@ -98,6 +98,13 @@ type ExecutionWithEstimateRow = {
   } | null;
 };
 
+type ExecutionWithEstimateQueryRow = {
+  workflow:
+    | ExecutionWithEstimateRow["workflow"]
+    | Array<NonNullable<ExecutionWithEstimateRow["workflow"]>>
+    | null;
+};
+
 function computeDurationMs(
   startedAt: string,
   finishedAt: string | null,
@@ -157,10 +164,18 @@ async function computeEstimatedTimeSavedMinutes(
       return null;
     }
 
-    const rows = (data ?? []) as ExecutionWithEstimateRow[];
-    if (rows.length === 0) {
+    const rawRows = (data ?? []) as ExecutionWithEstimateQueryRow[];
+    if (rawRows.length === 0) {
       return 0;
     }
+
+    // Supabase relationship selects sometimes return arrays even for 1:1 relations,
+    // so coerce the workflow payload into the normalized shape we expect.
+    const rows: ExecutionWithEstimateRow[] = rawRows.map((row) => ({
+      workflow: Array.isArray(row.workflow)
+        ? row.workflow[0] ?? null
+        : row.workflow ?? null,
+    }));
 
     let hasEstimate = false;
     const totalMinutes = rows.reduce((acc, row) => {
