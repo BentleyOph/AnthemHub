@@ -147,6 +147,15 @@ export async function POST(request: NextRequest) {
       ? (parsedInput as Record<string, unknown>)
       : { value: parsedInput };
 
+  const startedByEmail =
+    accessContext.profile.userEmail && accessContext.profile.userEmail.trim().length > 0
+      ? accessContext.profile.userEmail
+      : null;
+  const startedByName =
+    accessContext.profile.userName && accessContext.profile.userName.trim().length > 0
+      ? accessContext.profile.userName
+      : startedByEmail;
+
   const { data: insertData, error: insertError } = await supabase
     .from("execution")
     .insert({
@@ -157,6 +166,8 @@ export async function POST(request: NextRequest) {
       source: "USER",
       input_payload: parsedInput,
       started_at: new Date().toISOString(),
+      started_by_name: startedByName,
+      started_by_email: startedByEmail,
     })
     .select("id")
     .maybeSingle<{ id: string }>();

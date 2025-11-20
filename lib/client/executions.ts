@@ -88,14 +88,12 @@ type ExecutionRow = {
   started_at: string;
   finished_at: string | null;
   result_file_url: string | null;
+  started_by_name: string | null;
+  started_by_email: string | null;
+  user_id: string | null;
   workflow: {
     id: string;
     name: string | null;
-  } | null;
-  user: {
-    id: string;
-    name: string | null;
-    email: string | null;
   } | null;
 };
 
@@ -290,11 +288,9 @@ export async function getClientExecutions(options?: ClientExecutionListOptions):
         started_at,
         finished_at,
         result_file_url,
-        user:user_profile!execution_user_id_fkey (
-          id,
-          name,
-          email
-        ),
+        started_by_name,
+        started_by_email,
+        user_id,
         workflow:workflow (
           id,
           name
@@ -358,22 +354,30 @@ export async function getClientExecutions(options?: ClientExecutionListOptions):
 
   const rows = (data ?? []) as unknown as ExecutionRow[];
 
-  const executions = rows.map<ClientExecutionListItem>((row) => ({
-    id: row.id,
-    workflowId: row.workflow?.id ?? row.workflow_id,
-    workflowName:
+  const executions = rows.map<ClientExecutionListItem>((row) => {
+    const workflowName =
       row.workflow?.name?.trim() && row.workflow.name.length > 0
         ? row.workflow.name
-        : "Untitled workflow",
-    status: row.status,
-    startedAt: row.started_at,
-    finishedAt: row.finished_at,
-    durationMs: calculateDurationMs(row.started_at, row.finished_at),
-    resultFileUrl: row.result_file_url,
-    startedByUserId: row.user?.id ?? null,
-    startedByUserName: row.user?.name ?? null,
-    startedByUserEmail: row.user?.email ?? null,
-  }));
+        : "Untitled workflow";
+    const startedByName =
+      row.started_by_name && row.started_by_name.trim().length > 0
+        ? row.started_by_name.trim()
+        : null;
+
+    return {
+      id: row.id,
+      workflowId: row.workflow?.id ?? row.workflow_id,
+      workflowName,
+      status: row.status,
+      startedAt: row.started_at,
+      finishedAt: row.finished_at,
+      durationMs: calculateDurationMs(row.started_at, row.finished_at),
+      resultFileUrl: row.result_file_url,
+      startedByUserId: row.user_id ?? null,
+      startedByUserName: startedByName ?? row.started_by_email ?? null,
+      startedByUserEmail: row.started_by_email ?? null,
+    };
+  });
 
   const total = count ?? executions.length;
   const totalPages = params.perPage > 0 ? Math.max(1, Math.ceil(total / params.perPage)) : 1;
