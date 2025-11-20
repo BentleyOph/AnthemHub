@@ -215,8 +215,11 @@ function MetricsSection({ metrics }: { metrics: ClientOverviewMetrics }) {
     },
     {
       label: "Time saved (est)",
-      value: formatTimeSaved(70),
-      hint: "Across successful runs this month",
+      value: formatTimeSaved(metrics.timeSavedMinutes30d),
+      hint:
+        metrics.timeSavedMinutes30d === null
+          ? "Add workflow estimates to surface savings."
+          : "Across successful runs in the last 30 days",
       icon: <IconRocket className="size-4" />,
     },
   ];
