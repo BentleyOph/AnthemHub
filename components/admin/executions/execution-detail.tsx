@@ -444,7 +444,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                   <dd>
                     {execution.resultFileUrl ? (
                       <a
-                        className="text-primary underline"
+                        className="break-all text-primary underline"
                         href={execution.resultFileUrl}
                         target="_blank"
                         rel="noreferrer"

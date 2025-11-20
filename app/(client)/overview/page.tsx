@@ -260,45 +260,85 @@ function RecentActivitySection({
       </CardHeader>
       <CardContent className="flex-1">
         {executions.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Workflow</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Started</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <div className="flex h-full flex-col gap-4">
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Workflow</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {executions.map((execution) => (
+                    <TableRow key={execution.id}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {execution.workflowName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDuration(execution.durationMs)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusBadgeVariant(execution.status)}>
+                          {statusLabel(execution.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDateTime(execution.startedAt)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link href={`/workflows/${execution.workflowId}/run?prefill=${execution.id}`}>
+                            Run again
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex flex-1 flex-col gap-3 md:hidden">
               {executions.map((execution) => (
-                <TableRow key={execution.id}>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">
-                        {execution.workflowName}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
+                <div
+                  key={execution.id}
+                  className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{execution.workflowName}</p>
+                      <p className="text-xs text-muted-foreground">
                         {formatDuration(execution.durationMs)}
-                      </span>
+                      </p>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusBadgeVariant(execution.status)}>
+                    <Badge
+                      variant={statusBadgeVariant(execution.status)}
+                      className="whitespace-nowrap"
+                    >
                       {statusLabel(execution.status)}
                     </Badge>
-                  </TableCell>
-                  <TableCell>{formatDateTime(execution.startedAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" asChild>
-                      <Link href={`/workflows/${execution.workflowId}/run?prefill=${execution.id}`}>
-                        Run again
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Started {formatDateTime(execution.startedAt)}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full justify-center"
+                    asChild
+                  >
+                    <Link href={`/workflows/${execution.workflowId}/run?prefill=${execution.id}`}>
+                      Run again
+                    </Link>
+                  </Button>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/80 bg-muted/40 p-6 text-center text-sm text-muted-foreground">
             <p>No executions yet</p>
@@ -336,11 +376,11 @@ function DiscoverSection({
       </CardHeader>
       <CardContent className="flex-1">
         {discover.length > 0 ? (
-          <div className="flex gap-3 overflow-x-auto pb-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {discover.map((workflow) => (
               <Card
                 key={workflow.id}
-                className="min-w-[220px] flex-1 border border-border/60 bg-card/80"
+                className="flex min-w-0 flex-col border border-border/60 bg-card/80"
               >
                 <CardHeader className="space-y-3">
                   <WorkflowIcon
