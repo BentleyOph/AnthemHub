@@ -6,7 +6,6 @@ import {
   IconInfoCircle,
 } from "@tabler/icons-react";
 
-import { ClientNav } from "@/components/client/client-nav";
 import { WorkflowIcon } from "@/components/client/workflow-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,13 +40,6 @@ async function WorkflowsContent() {
 
   return (
     <div className="flex flex-col gap-8">
-      <ClientNav
-        clientName={data.profile.clientName}
-        clientCompany={data.profile.clientCompany}
-        userName={data.profile.userName}
-        activeHref="/workflows"
-      />
-
       <section className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold">My Workflows</h1>
         <p className="text-muted-foreground text-sm">
@@ -263,7 +255,6 @@ function formatDate(iso: string | null): string | null {
 function WorkflowsSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <Skeleton className="h-24 rounded-xl" />
       <div className="space-y-2">
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-4 w-80" />
