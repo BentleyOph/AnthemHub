@@ -30,6 +30,7 @@ type FormState = {
   internalNotes: string;
   n8nWebhookUrl: string;
   isPublished: boolean;
+  estimatedMinutesSaved: string;
   inputSchemaText: string;
   inputSchemaValid: boolean;
   iconFile: File | null;
@@ -85,6 +86,10 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
       internalNotes: workflow?.internalNotes ?? "",
       n8nWebhookUrl: workflow?.n8nWebhookUrl ?? "",
       isPublished: workflow?.isPublished ?? false,
+      estimatedMinutesSaved:
+        workflow?.estimatedMinutesSaved !== null && workflow?.estimatedMinutesSaved !== undefined
+          ? String(workflow.estimatedMinutesSaved)
+          : "",
       inputSchemaText: schemaText,
       inputSchemaValid: isSchemaValid(schemaText),
       iconFile: null,
@@ -165,6 +170,7 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
     formData.set("publicDesc", formState.publicDesc.trim());
     formData.set("internalNotes", formState.internalNotes.trim());
     formData.set("n8nWebhookUrl", formState.n8nWebhookUrl.trim());
+    formData.set("estimatedMinutesSaved", formState.estimatedMinutesSaved.trim());
     formData.set("inputSchema", formState.inputSchemaText);
     formData.set("isPublished", String(formState.isPublished));
     if (formState.iconFile) {
@@ -244,6 +250,7 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
         formState.publicDesc !== "" ||
         formState.internalNotes !== "" ||
         formState.n8nWebhookUrl !== "" ||
+        formState.estimatedMinutesSaved !== "" ||
         formState.isPublished ||
         formState.inputSchemaText !== DEFAULT_SCHEMA ||
         formState.iconFile !== null
@@ -255,6 +262,10 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
       formState.publicDesc !== workflow.description ||
       formState.internalNotes !== (workflow.internalNotes ?? "") ||
       formState.n8nWebhookUrl !== workflow.n8nWebhookUrl ||
+      formState.estimatedMinutesSaved !==
+        (workflow.estimatedMinutesSaved !== null && workflow.estimatedMinutesSaved !== undefined
+          ? String(workflow.estimatedMinutesSaved)
+          : "") ||
       formState.isPublished !== workflow.isPublished ||
       formState.removeIcon ||
       !!formState.iconFile ||
@@ -339,6 +350,35 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
               />
               <FieldDescription>
                 Visible to admins only. Include playbooks or fulfillment notes.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="workflow-estimated-minutes">
+              Estimated minutes saved per run
+            </FieldLabel>
+            <FieldContent>
+              <Input
+                id="workflow-estimated-minutes"
+                type="number"
+                min={0}
+                max={1440}
+                step={1}
+                inputMode="numeric"
+                value={formState.estimatedMinutesSaved}
+                onChange={(event) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    estimatedMinutesSaved: event.target.value,
+                  }))
+                }
+                placeholder="45"
+                disabled={isSubmitting}
+              />
+              <FieldDescription>
+                Used to calculate the client time-saved metric for this workflow. Leave blank if
+                unknown.
               </FieldDescription>
             </FieldContent>
           </Field>
