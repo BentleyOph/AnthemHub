@@ -64,6 +64,50 @@ export type WorkflowListResult = {
   status: "ALL" | "PUBLISHED" | "DRAFT";
 };
 
+const estimatedMinutesSavedValueSchema = z
+  .union([z.string(), z.number(), z.null()])
+  .transform((value, ctx) => {
+    if (value === null) {
+      return null;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return null;
+      }
+      const parsed = Number(trimmed);
+      if (!Number.isFinite(parsed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Estimated minutes saved must be a number.",
+        });
+        return z.NEVER;
+      }
+      return Math.round(parsed);
+    }
+
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Estimated minutes saved must be a number.",
+        });
+        return z.NEVER;
+      }
+      return Math.round(value);
+    }
+
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid estimated minutes saved value.",
+    });
+    return z.NEVER;
+  })
+  .refine((value) => value === null || (typeof value === "number" && value >= 0 && value <= 1440), {
+    message: "Estimated minutes saved must be between 0 and 1440.",
+  });
+
 export const workflowUpsertSchema = z.object({
   name: z.string().trim().min(2).max(255),
   publicDesc: z.string().trim().min(10).max(2000),
@@ -76,6 +120,9 @@ export const workflowUpsertSchema = z.object({
   n8nWebhookUrl: z.string().trim().url().max(2048),
   inputSchema: z.union([z.string().trim().min(2), z.record(z.string(), z.any())]),
   isPublished: z.boolean().default(false),
+  estimatedMinutesSaved: z
+    .union([estimatedMinutesSavedValueSchema, z.undefined()])
+    .transform((value) => (value === undefined ? null : value)),
 });
 
 export type WorkflowUpsertInput = z.input<typeof workflowUpsertSchema> & {
@@ -91,6 +138,7 @@ type WorkflowUpsertParsed = {
   input_schema: JsonSchema;
   is_published: boolean;
   icon_url?: string | null;
+  estimated_minutes_saved: number | null;
 };
 
 type WorkflowDetailRow = {
@@ -102,6 +150,7 @@ type WorkflowDetailRow = {
   n8n_webhook_url: string;
   input_schema: JsonSchema;
   is_published: boolean;
+  estimated_minutes_saved: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -115,6 +164,7 @@ export type WorkflowDetail = {
   n8nWebhookUrl: string;
   inputSchema: JsonSchema;
   isPublished: boolean;
+  estimatedMinutesSaved: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -169,6 +219,7 @@ function normalizeUpsertPayload(
     input_schema: parseInputSchema(parsed.inputSchema),
     is_published: parsed.isPublished ?? false,
     icon_url: iconPath ?? (shouldRemoveIcon ? null : undefined),
+    estimated_minutes_saved: parsed.estimatedMinutesSaved,
   };
 }
 
@@ -305,6 +356,7 @@ export async function getWorkflowDetail(id: string): Promise<WorkflowDetail | nu
         n8n_webhook_url,
         input_schema,
         is_published,
+        estimated_minutes_saved,
         created_at,
         updated_at
       `,
@@ -329,6 +381,7 @@ export async function getWorkflowDetail(id: string): Promise<WorkflowDetail | nu
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
+    estimatedMinutesSaved: data.estimated_minutes_saved,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -370,6 +423,7 @@ export async function createWorkflow(
         n8n_webhook_url,
         input_schema,
         is_published,
+        estimated_minutes_saved,
         created_at,
         updated_at
       `,
@@ -389,6 +443,7 @@ export async function createWorkflow(
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
+    estimatedMinutesSaved: data.estimated_minutes_saved,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -432,6 +487,7 @@ export async function updateWorkflow(
         n8n_webhook_url,
         input_schema,
         is_published,
+        estimated_minutes_saved,
         created_at,
         updated_at
       `,
@@ -451,6 +507,7 @@ export async function updateWorkflow(
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
+    estimatedMinutesSaved: data.estimated_minutes_saved,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };

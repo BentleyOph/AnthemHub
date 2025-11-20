@@ -18,6 +18,7 @@ export function parseMultipartPayload(formData: FormData): WorkflowUpsertInput {
     publicDesc: formData.get("publicDesc")?.toString() ?? "",
     internalNotes: formData.get("internalNotes")?.toString() ?? undefined,
     n8nWebhookUrl: formData.get("n8nWebhookUrl")?.toString() ?? "",
+    estimatedMinutesSaved: formData.get("estimatedMinutesSaved")?.toString(),
     inputSchema: formData.get("inputSchema")?.toString() ?? "",
     isPublished: parseBooleanString(formData.get("isPublished")?.toString() ?? null),
     iconFile: icon instanceof File && icon.size > 0 ? icon : undefined,
@@ -66,6 +67,11 @@ export async function extractWorkflowPayload(
     internalNotes:
       typeof typed.internalNotes === "string" ? typed.internalNotes : undefined,
     n8nWebhookUrl: String(typed.n8nWebhookUrl ?? ""),
+    estimatedMinutesSaved: typed.estimatedMinutesSaved as
+      | string
+      | number
+      | null
+      | undefined,
     inputSchema,
     isPublished: Boolean(typed.isPublished),
     removeIcon: Boolean(typed.removeIcon),
