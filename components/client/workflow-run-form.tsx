@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -34,8 +34,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  uploadWorkflowInputFile,
+  WorkflowInputUploadError,
+} from "@/lib/storage/workflow-input-upload";
 
 type Path = Array<string | number>;
+type UploadStateMap = Record<string, boolean>;
+type SelectedFileMap = Record<string, string>;
+
+const FILE_UPLOAD_ACCEPT = "application/pdf,.pdf,text/csv,.csv";
+const FILE_UPLOAD_HELPER_TEXT =
+  "Accepted file types: PDF or CSV (max 20MB). Files are stored with a 24-hour signed link.";
 
 interface WorkflowRunFormProps {
   workflowId: string;
@@ -120,12 +130,15 @@ export function WorkflowRunForm({
   const defaults = useMemo(() => jsonSchemaDefaultValues(schema), [schema]);
   const [formData, setFormData] = useState<Record<string, unknown>>(() => defaults);
   const [errors, setErrors] = useState<ErrorMap>({});
+  const [uploadingFields, setUploadingFields] = useState<UploadStateMap>({});
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFileMap>({});
   const [isSubmitting, startTransition] = useTransition();
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setFormData(defaults);
     setErrors({});
+    setSelectedFiles({});
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [defaults]);
 
@@ -158,6 +171,66 @@ export function WorkflowRunForm({
     const key = pathToKey(path);
     clearErrorsForPrefix(key);
     setFormData((current) => setDeepValue(current, path, value) as Record<string, unknown>);
+  }
+
+  function setFieldUploading(key: string, uploading: boolean) {
+    setUploadingFields((current) => {
+      if (uploading) {
+        if (current[key]) {
+          return current;
+        }
+        return { ...current, [key]: true };
+      }
+      if (!current[key]) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
+  async function handleFileUpload(path: Path, file: File) {
+    const key = pathToKey(path);
+    setFieldUploading(key, true);
+    setFieldSelectedFile(key, file.name ?? "Selected file");
+    try {
+      const { signedUrl } = await uploadWorkflowInputFile(file);
+      updateValue(path, signedUrl);
+      toast.success("File uploaded. A signed link has been added to the form.");
+    } catch (error) {
+      setFieldSelectedFile(key, null);
+      if (error instanceof WorkflowInputUploadError) {
+        toast.error(error.message);
+      } else {
+        console.error("Failed to upload workflow input file", error);
+        toast.error("Failed to upload file. Please try again.");
+      }
+    } finally {
+      setFieldUploading(key, false);
+    }
+  }
+
+  function setFieldSelectedFile(key: string, name: string | null) {
+    setSelectedFiles((current) => {
+      if (!name) {
+        if (!current[key]) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[key];
+        return next;
+      }
+      if (current[key] === name) {
+        return current;
+      }
+      return { ...current, [key]: name };
+    });
+  }
+
+  function handleClearSelectedFile(path: Path) {
+    const key = pathToKey(path);
+    setFieldSelectedFile(key, null);
   }
 
   async function submitExecution(validPayload: unknown) {
@@ -269,6 +342,10 @@ export function WorkflowRunForm({
           errors,
           disabled,
           onChange: updateValue,
+          onUploadFile: handleFileUpload,
+          onClearFile: handleClearSelectedFile,
+          uploadingFields,
+          selectedFileNames: selectedFiles,
         })}
       </FieldSet>
 
@@ -297,6 +374,10 @@ function renderObjectFields({
   errors,
   disabled,
   onChange,
+  onUploadFile,
+  onClearFile,
+  uploadingFields,
+  selectedFileNames,
 }: {
   schema: JsonSchema;
   path: Path;
@@ -304,6 +385,10 @@ function renderObjectFields({
   errors: ErrorMap;
   disabled: boolean;
   onChange: (path: Path, value: unknown) => void;
+  onUploadFile: (path: Path, file: File) => Promise<void>;
+  onClearFile: (path: Path) => void;
+  uploadingFields: UploadStateMap;
+  selectedFileNames: SelectedFileMap;
 }): React.ReactNode {
   const properties = schema.properties ?? {};
   const required = new Set(schema.required ?? []);
@@ -323,6 +408,10 @@ function renderObjectFields({
         errors,
         disabled,
         onChange,
+        onUploadFile,
+        onClearFile,
+        uploadingFields,
+        selectedFileNames,
       });
 
       return (
@@ -346,6 +435,10 @@ function renderObjectFields({
         errors={errors}
         disabled={disabled}
         onChange={onChange}
+        onUploadFile={onUploadFile}
+        onClearFile={onClearFile}
+        isUploading={Boolean(uploadingFields[fieldKey])}
+        selectedFileName={selectedFileNames[fieldKey]}
       />
     );
   });
@@ -361,6 +454,10 @@ interface ScalarFieldProps {
   errors: ErrorMap;
   disabled: boolean;
   onChange: (path: Path, value: unknown) => void;
+  onUploadFile: (path: Path, file: File) => Promise<void>;
+  onClearFile: (path: Path) => void;
+  isUploading: boolean;
+  selectedFileName?: string;
 }
 
 function ScalarField({
@@ -373,10 +470,39 @@ function ScalarField({
   errors,
   disabled,
   onChange,
+  onUploadFile,
+  onClearFile,
+  isUploading,
+  selectedFileName,
 }: ScalarFieldProps) {
   const fieldKey = pathToKey(path);
   const type = resolveSchemaType(schema);
   const fieldErrors = errors[fieldKey];
+  const normalizedFormat = schema.format?.toLowerCase();
+
+  if (
+    (type === "string" || type === undefined) &&
+    normalizedFormat &&
+    (normalizedFormat === "uri" || normalizedFormat === "url")
+  ) {
+    const stringValue = typeof value === "string" ? value : "";
+    return (
+      <FileUploadField
+        label={label}
+        description={description}
+        path={path}
+        required={required}
+        value={stringValue}
+        fieldErrors={fieldErrors}
+        disabled={disabled}
+        onChange={onChange}
+        onUploadFile={onUploadFile}
+        onClearFile={onClearFile}
+        isUploading={isUploading}
+        selectedFileName={selectedFileName}
+      />
+    );
+  }
 
   if (type === "array") {
     return (
@@ -609,6 +735,129 @@ function ArrayField({
         </Button>
         {errors[fieldKey] ? (
           <FieldError errors={errors[fieldKey]!.map((message) => ({ message }))} />
+        ) : null}
+      </FieldContent>
+    </Field>
+  );
+}
+
+interface FileUploadFieldProps {
+  label: string;
+  description: string | null;
+  path: Path;
+  required: boolean;
+  value: string;
+  fieldErrors?: string[];
+  disabled: boolean;
+  onChange: (path: Path, value: unknown) => void;
+  onUploadFile: (path: Path, file: File) => Promise<void>;
+  onClearFile: (path: Path) => void;
+  isUploading: boolean;
+  selectedFileName?: string;
+}
+
+function FileUploadField({
+  label,
+  description,
+  path,
+  required,
+  value,
+  fieldErrors,
+  disabled,
+  onChange,
+  onUploadFile,
+  onClearFile,
+  isUploading,
+  selectedFileName,
+}: FileUploadFieldProps) {
+  const fieldKey = pathToKey(path);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const displayName = selectedFileName ?? (value ? "Existing document" : "No file chosen");
+
+  function handleClear() {
+    onChange(path, "");
+    onClearFile(path);
+    toast.success("File reference removed.");
+  }
+
+  function handleOpenPicker() {
+    inputRef.current?.click();
+  }
+
+  async function handleSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+    await onUploadFile(path, file);
+  }
+
+  return (
+    <Field data-invalid={fieldErrors ? true : undefined}>
+      <FieldLabel htmlFor={`${fieldKey}-file`}>
+        {label}
+        {!required ? <span className="text-muted-foreground ml-1 text-xs">(optional)</span> : null}
+      </FieldLabel>
+      <FieldContent className="gap-3">
+        <input
+          ref={inputRef}
+          id={`${fieldKey}-file`}
+          type="file"
+          accept={FILE_UPLOAD_ACCEPT}
+          disabled={disabled || isUploading}
+          onChange={(event) => {
+            void handleSelect(event);
+          }}
+          className="sr-only"
+        />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex flex-1 flex-wrap items-center gap-3 rounded-md border bg-background px-3 py-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleOpenPicker}
+              disabled={disabled || isUploading}
+            >
+              Choose file
+            </Button>
+            <span className="text-sm text-muted-foreground truncate">
+              {isUploading ? "Uploading…" : displayName}
+            </span>
+          </div>
+          {value ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="sm:ml-auto"
+              onClick={handleClear}
+              disabled={disabled || isUploading}
+            >
+              Remove file
+            </Button>
+          ) : null}
+        </div>
+        {value ? (
+          <p className="break-all text-xs text-muted-foreground">
+            Current file link:{" "}
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-foreground underline"
+            >
+              Open document
+            </a>
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Select a file to upload.</p>
+        )}
+        {description ? <FieldDescription>{description}</FieldDescription> : null}
+        <FieldDescription>{FILE_UPLOAD_HELPER_TEXT}</FieldDescription>
+        {fieldErrors ? (
+          <FieldError errors={fieldErrors.map((message) => ({ message }))} />
         ) : null}
       </FieldContent>
     </Field>
