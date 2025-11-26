@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { Space_Mono, Tomorrow } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans, Tomorrow } from "next/font/google";
 import "./globals.css";
 import { ensureUserProfile } from "@/lib/auth/profile";
 import { Toaster } from "@/components/ui/sonner";
 
-const spaceMono = Space_Mono({
-  variable: "--font-space-mono",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const tomorrow = Tomorrow({
@@ -52,7 +58,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${spaceMono.variable} ${tomorrow.variable} antialiased`}
+        className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} ${tomorrow.variable} antialiased`}
       >
         {children}
         <Toaster richColors position="top-right" />
