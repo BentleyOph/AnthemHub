@@ -181,6 +181,7 @@ export default async function WorkflowDetailPage({ params }: RouteParams) {
             presets={presets}
             clientOptions={clientOptions}
             timeZone={TIMEZONE}
+            inputSchema={workflow.inputSchema}
           />
         </CardContent>
       </Card>

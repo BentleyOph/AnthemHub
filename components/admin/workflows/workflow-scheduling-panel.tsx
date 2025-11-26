@@ -17,6 +17,9 @@ import type {
   WorkflowPresetWithSchedules,
   WorkflowSchedule,
 } from "@/lib/admin/workflows/presets";
+import type { JsonSchema } from "@/lib/schema/jsonschema";
+import { jsonSchemaDefaultValues } from "@/lib/schema/jsonschema-zod";
+import { WorkflowInputEditor } from "@/components/workflows/workflow-input-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,6 +46,7 @@ type Props = {
   presets: WorkflowPresetWithSchedules[];
   clientOptions: WorkflowClientOption[];
   timeZone: string;
+  inputSchema: JsonSchema | null;
 };
 
 type SheetState =
@@ -56,7 +60,8 @@ type PresetFormState = {
   clientId: string;
   name: string;
   description: string;
-  inputPayload: string;
+  inputPayloadText: string;
+  inputPayloadData: Record<string, unknown>;
 };
 
 type ScheduleFormState = {
@@ -76,9 +81,22 @@ const CRON_SUGGESTIONS = [
 const textareaClassName =
   "border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 bg-transparent w-full rounded-md border px-3 py-2 text-sm font-mono leading-relaxed shadow-xs outline-none focus-visible:ring-[3px]";
 
+function normalizePayload(
+  value: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 function stringifyPayload(value: Record<string, unknown> | undefined): string {
   try {
-    return JSON.stringify(value ?? {}, null, 2);
+    return JSON.stringify(normalizePayload(value), null, 2);
   } catch {
     return "{\n  \n}";
   }
@@ -100,15 +118,28 @@ export function WorkflowSchedulingPanel({
   presets,
   clientOptions,
   timeZone,
+  inputSchema,
 }: Props) {
   const router = useRouter();
+  const defaultInputTemplate = useMemo(
+    () => normalizePayload(jsonSchemaDefaultValues(inputSchema)),
+    [inputSchema],
+  );
+  const hasSchemaFields = useMemo(() => {
+    if (!inputSchema) {
+      return false;
+    }
+    const properties = inputSchema.properties ?? {};
+    return Object.keys(properties).length > 0;
+  }, [inputSchema]);
   const [items, setItems] = useState<WorkflowPresetWithSchedules[]>(presets);
   const [sheetState, setSheetState] = useState<SheetState>(null);
   const [presetForm, setPresetForm] = useState<PresetFormState>({
     clientId: clientOptions[0]?.id ?? "",
     name: "",
     description: "",
-    inputPayload: "{\n  \n}",
+    inputPayloadText: stringifyPayload(defaultInputTemplate),
+    inputPayloadData: defaultInputTemplate,
   });
   const [scheduleForm, setScheduleForm] = useState<ScheduleFormState>({
     name: "",
@@ -117,6 +148,7 @@ export function WorkflowSchedulingPanel({
     isActive: true,
   });
   const [formError, setFormError] = useState<string | null>(null);
+  const [presetJsonError, setPresetJsonError] = useState<string | null>(null);
   const [isSubmitting, startTransition] = useTransition();
 
   const formatter = useMemo(
@@ -146,20 +178,26 @@ export function WorkflowSchedulingPanel({
     preset?: WorkflowPresetWithSchedules,
   ) => {
     if (type === "createPreset") {
+      const payload = normalizePayload(defaultInputTemplate);
       setPresetForm({
         clientId: clientOptions[0]?.id ?? "",
         name: "",
         description: "",
-        inputPayload: "{\n  \n}",
+        inputPayloadText: stringifyPayload(payload),
+        inputPayloadData: payload,
       });
+      setPresetJsonError(null);
       setSheetState({ type: "createPreset" });
     } else if (preset) {
+      const payload = normalizePayload(preset.inputPayload);
       setPresetForm({
         clientId: preset.clientId,
         name: preset.name,
         description: preset.description ?? "",
-        inputPayload: stringifyPayload(preset.inputPayload),
+        inputPayloadText: stringifyPayload(payload),
+        inputPayloadData: payload,
       });
+      setPresetJsonError(null);
       setSheetState({ type: "editPreset", presetId: preset.id });
     }
     setFormError(null);
@@ -197,26 +235,56 @@ export function WorkflowSchedulingPanel({
   const closeSheet = () => {
     setSheetState(null);
     setFormError(null);
+    setPresetJsonError(null);
   };
 
-  const parseInputPayload = (): Record<string, unknown> | null => {
-    try {
-      const parsed = JSON.parse(presetForm.inputPayload || "{}");
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        setFormError("Input payload must be a JSON object.");
-        return null;
+  const handlePresetInputJsonChange = (nextValue: string) => {
+    let parsed: Record<string, unknown> | null = null;
+    let nextError: string | null = null;
+
+    if (!nextValue.trim()) {
+      parsed = {};
+    } else {
+      try {
+        const candidate = JSON.parse(nextValue);
+        if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+          nextError = "Input payload must be a JSON object.";
+        } else {
+          parsed = candidate as Record<string, unknown>;
+        }
+      } catch {
+        nextError = "Input payload must be valid JSON.";
       }
-      return parsed as Record<string, unknown>;
-    } catch (error) {
-      console.error("Invalid input payload", error);
-      setFormError("Input payload must be valid JSON.");
-      return null;
+    }
+
+    setPresetForm((prev) => ({
+      ...prev,
+      inputPayloadText: nextValue,
+      inputPayloadData: parsed ?? prev.inputPayloadData,
+    }));
+    setPresetJsonError(nextError);
+    if (!nextError) {
+      setFormError(null);
     }
   };
 
+  const handlePresetStructuredChange = (nextValue: Record<string, unknown>) => {
+    setPresetForm((prev) => ({
+      ...prev,
+      inputPayloadData: nextValue,
+      inputPayloadText: stringifyPayload(nextValue),
+    }));
+    setPresetJsonError(null);
+    setFormError(null);
+  };
+
   const handleCreatePreset = () => {
-    const payload = parseInputPayload();
-    if (!payload) return;
+    if (presetJsonError) {
+      setFormError(presetJsonError);
+      return;
+    }
+
+    const payload = presetForm.inputPayloadData;
 
     if (!presetForm.clientId) {
       setFormError("Client is required.");
@@ -267,8 +335,12 @@ export function WorkflowSchedulingPanel({
   };
 
   const handleUpdatePreset = () => {
-    const payload = parseInputPayload();
-    if (!payload || !currentPreset || sheetState?.type !== "editPreset") {
+    if (presetJsonError) {
+      setFormError(presetJsonError);
+      return;
+    }
+
+    if (!currentPreset || sheetState?.type !== "editPreset") {
       return;
     }
 
@@ -276,6 +348,8 @@ export function WorkflowSchedulingPanel({
       setFormError("Preset name is required.");
       return;
     }
+
+    const payload = presetForm.inputPayloadData;
 
     setFormError(null);
 
@@ -771,19 +845,43 @@ export function WorkflowSchedulingPanel({
                     placeholder="Optional helper text"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Default input payload (JSON)</Label>
-                  <textarea
-                    className={textareaClassName}
-                    rows={12}
-                    value={presetForm.inputPayload}
-                    onChange={(event) =>
-                      setPresetForm((prev) => ({
-                        ...prev,
-                        inputPayload: event.target.value,
-                      }))
-                    }
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Default input payload (form)</Label>
+                    {hasSchemaFields ? (
+                      <WorkflowInputEditor
+                        schema={inputSchema}
+                        value={presetForm.inputPayloadData}
+                        errors={{}}
+                        disabled={false}
+                        onChange={handlePresetStructuredChange}
+                        onFieldInteract={() => {
+                          setPresetJsonError(null);
+                          setFormError(null);
+                        }}
+                      />
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        This workflow does not define an input schema yet.
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Default input payload (JSON)</Label>
+                    <textarea
+                      className={textareaClassName}
+                      rows={12}
+                      value={presetForm.inputPayloadText}
+                      onChange={(event) => handlePresetInputJsonChange(event.target.value)}
+                    />
+                    {presetJsonError ? (
+                      <p className="text-xs text-destructive">{presetJsonError}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Keep the JSON in sync if you prefer manual edits.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {formError && (
                   <p className="text-sm text-destructive">{formError}</p>
@@ -841,19 +939,43 @@ export function WorkflowSchedulingPanel({
                     }
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Default input payload (JSON)</Label>
-                  <textarea
-                    className={textareaClassName}
-                    rows={12}
-                    value={presetForm.inputPayload}
-                    onChange={(event) =>
-                      setPresetForm((prev) => ({
-                        ...prev,
-                        inputPayload: event.target.value,
-                      }))
-                    }
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Default input payload (form)</Label>
+                    {hasSchemaFields ? (
+                      <WorkflowInputEditor
+                        schema={inputSchema}
+                        value={presetForm.inputPayloadData}
+                        errors={{}}
+                        disabled={false}
+                        onChange={handlePresetStructuredChange}
+                        onFieldInteract={() => {
+                          setPresetJsonError(null);
+                          setFormError(null);
+                        }}
+                      />
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        This workflow does not define an input schema yet.
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Default input payload (JSON)</Label>
+                    <textarea
+                      className={textareaClassName}
+                      rows={12}
+                      value={presetForm.inputPayloadText}
+                      onChange={(event) => handlePresetInputJsonChange(event.target.value)}
+                    />
+                    {presetJsonError ? (
+                      <p className="text-xs text-destructive">{presetJsonError}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Keep the JSON in sync if you prefer manual edits.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {formError && (
                   <p className="text-sm text-destructive">{formError}</p>
