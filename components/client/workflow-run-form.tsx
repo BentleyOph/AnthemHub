@@ -305,7 +305,7 @@ export function WorkflowRunForm({
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={disabled || isSubmitting}>
-          {isSubmitting ? "Starting..." : "Start Generation"}
+          {isSubmitting ? "Starting..." : "Start Workflow"}
         </Button>
         {disabled ? (
           <span className="text-muted-foreground text-sm">
