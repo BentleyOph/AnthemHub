@@ -111,6 +111,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
   const outputCostValue = normalizedCost?.outputCost ?? null;
   const breakdownEntries = normalizedCost?.breakdownEntries ?? [];
   const usageCurrency = normalizedCost?.currency ?? execution.costCurrency ?? undefined;
+  const showSummaryGrid = breakdownEntries.length === 0;
   const hasUsageData =
     totalCostValue !== null ||
     inputCostValue !== null ||
@@ -336,7 +337,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
             <CardContent>
               {hasUsageData ? (
                 <div className="space-y-4">
-                  {(totalCostValue !== null || outputCostValue !== null || inputCostValue !== null) && (
+                  {showSummaryGrid && (totalCostValue !== null || outputCostValue !== null || inputCostValue !== null) && (
                     <div className="grid gap-3 md:grid-cols-3">
                       {totalCostValue !== null && (
                         <div className="rounded-lg border bg-muted/30 p-3">
@@ -366,7 +367,6 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                   )}
                   {breakdownEntries.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase text-muted-foreground">Cost breakdown</p>
                       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                         {breakdownEntries.map((entry, index) => (
                           <div key={`${entry.key}-${index}`} className="rounded-lg border bg-muted/30 p-3">
