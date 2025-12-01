@@ -121,7 +121,7 @@ function AssignedWorkflowsSection({
                 <Link href={workflow.runHref}>Run</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link href={workflow.detailsHref}>
+                <Link href="#">
                   Details
                   <IconChevronRight className="size-3.5" />
                 </Link>
