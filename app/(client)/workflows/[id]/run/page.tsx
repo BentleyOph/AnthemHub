@@ -85,8 +85,8 @@ async function WorkflowRunContent({
 
       <Card>
         <CardHeader className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex items-start gap-3">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
+            <div className="flex flex-1 items-start gap-3">
               <WorkflowIcon iconUrl={workflow.iconUrl} name={workflow.name} />
               <div className="space-y-2">
                 <CardTitle className="text-2xl font-semibold leading-tight">
@@ -102,7 +102,7 @@ async function WorkflowRunContent({
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 md:justify-end md:self-start">
               {workflow.isPublished ? (
                 <Badge variant="default">Published</Badge>
               ) : (

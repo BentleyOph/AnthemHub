@@ -63,6 +63,7 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
   }
 
   const isLive = LIVE_STATUSES.has(execution.status);
+  const showInputSummary = hasInputPayload(execution.inputPayload);
 
   return (
     <div className="flex flex-col gap-8">
@@ -161,7 +162,7 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
         </CardContent>
       </Card>
 
-      <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
+      <div className={`grid gap-8 ${showInputSummary ? "lg:grid-cols-[2fr_1fr]" : ""}`}>
         <ClientExecutionTimeline
           executionId={execution.id}
           initialEvents={events}
@@ -169,19 +170,21 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
           timezone={TIMEZONE}
         />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Input summary</CardTitle>
-            <CardDescription>
-              Values provided when starting this run.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <pre className="max-h-96 w-full max-w-full overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed whitespace-pre-wrap break-all">
-              {prettyJson(execution.inputPayload)}
-            </pre>
-          </CardContent>
-        </Card>
+        {showInputSummary && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Input summary</CardTitle>
+              <CardDescription>
+                Values provided when starting this run.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="max-h-96 w-full max-w-full overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed whitespace-pre-wrap break-all">
+                {prettyJson(execution.inputPayload)}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <ExecutionResult
@@ -241,6 +244,35 @@ function prettyJson(value: unknown): string {
     console.error("Failed to stringify JSON", error);
     return String(value);
   }
+}
+
+function hasInputPayload(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 && trimmed !== "{}" && trimmed !== "null" && trimmed !== "[]";
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return true;
+  }
+
+  if (value instanceof Date) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === "object") {
+    return Object.keys(value as Record<string, unknown>).length > 0;
+  }
+
+  return false;
 }
 
 function ExecutionDetailSkeleton() {

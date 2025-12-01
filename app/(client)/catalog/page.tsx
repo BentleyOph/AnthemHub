@@ -126,7 +126,7 @@ function WorkflowCard({
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/workflows/${workflow.id}`}>
+              <Link href="#">
                 Details
                 <IconChevronRight className="size-3.5" />
               </Link>
