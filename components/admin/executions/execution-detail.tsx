@@ -109,11 +109,13 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
   const totalCostValue = normalizedCost?.totalCost ?? execution.totalCost ?? null;
   const inputCostValue = normalizedCost?.inputCost ?? null;
   const outputCostValue = normalizedCost?.outputCost ?? null;
+  const breakdownEntries = normalizedCost?.breakdownEntries ?? [];
   const usageCurrency = normalizedCost?.currency ?? execution.costCurrency ?? undefined;
   const hasUsageData =
     totalCostValue !== null ||
     inputCostValue !== null ||
     outputCostValue !== null ||
+    breakdownEntries.length > 0 ||
     Boolean(execution.costBreakdown);
 
   const fetchEvents = useCallback(
@@ -334,26 +336,49 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
             <CardContent>
               {hasUsageData ? (
                 <div className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="rounded-lg border bg-muted/30 p-3">
-                      <p className="text-xs font-medium uppercase text-muted-foreground">Total cost</p>
-                      <p className="text-xl font-semibold text-foreground">
-                        {formatCostAmount(totalCostValue, usageCurrency)}
-                      </p>
+                  {(totalCostValue !== null || outputCostValue !== null || inputCostValue !== null) && (
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {totalCostValue !== null && (
+                        <div className="rounded-lg border bg-muted/30 p-3">
+                          <p className="text-xs font-medium uppercase text-muted-foreground">Total cost</p>
+                          <p className="text-xl font-semibold text-foreground">
+                            {formatCostAmount(totalCostValue, usageCurrency)}
+                          </p>
+                        </div>
+                      )}
+                      {inputCostValue !== null && (
+                        <div className="rounded-lg border bg-muted/30 p-3">
+                          <p className="text-xs font-medium uppercase text-muted-foreground">Input cost</p>
+                          <p className="text-lg font-semibold text-foreground">
+                            {formatCostAmount(inputCostValue, usageCurrency)}
+                          </p>
+                        </div>
+                      )}
+                      {outputCostValue !== null && (
+                        <div className="rounded-lg border bg-muted/30 p-3">
+                          <p className="text-xs font-medium uppercase text-muted-foreground">Output cost</p>
+                          <p className="text-lg font-semibold text-foreground">
+                            {formatCostAmount(outputCostValue, usageCurrency)}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div className="rounded-lg border bg-muted/30 p-3">
-                      <p className="text-xs font-medium uppercase text-muted-foreground">Input cost</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {formatCostAmount(inputCostValue, usageCurrency)}
-                      </p>
+                  )}
+                  {breakdownEntries.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Cost breakdown</p>
+                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {breakdownEntries.map((entry, index) => (
+                          <div key={`${entry.key}-${index}`} className="rounded-lg border bg-muted/30 p-3">
+                            <p className="text-xs font-medium uppercase text-muted-foreground">{entry.label}</p>
+                            <p className="text-lg font-semibold text-foreground">
+                              {formatCostAmount(entry.value, usageCurrency)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="rounded-lg border bg-muted/30 p-3">
-                      <p className="text-xs font-medium uppercase text-muted-foreground">Output cost</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {formatCostAmount(outputCostValue, usageCurrency)}
-                      </p>
-                    </div>
-                  </div>
+                  )}
                   {usageCurrency && (
                     <div className="rounded-lg border bg-muted/20 p-3 text-sm">
                       <span className="font-medium text-foreground">Currency:</span>{" "}
@@ -365,7 +390,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                       <p className="text-xs font-medium uppercase text-muted-foreground">
                         Raw cost payload
                       </p>
-                      <pre className="max-h-[320px] w-full max-w-full overflow-auto rounded bg-muted/30 p-3 text-xs whitespace-pre-wrap break-all">
+                      <pre className="max-h-80 w-full max-w-full overflow-auto rounded bg-muted/30 p-3 text-xs whitespace-pre-wrap break-all">
                         {prettyJson(execution.costBreakdown)}
                       </pre>
                     </div>

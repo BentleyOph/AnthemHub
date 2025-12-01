@@ -39,7 +39,7 @@ type SelectedFileMap = Record<string, string>;
 
 const FILE_UPLOAD_ACCEPT = "application/pdf,.pdf,text/csv,.csv";
 const FILE_UPLOAD_HELPER_TEXT =
-  "Accepted file types: PDF or CSV (max 20MB). Files are stored with a 24-hour signed link.";
+  "Accepted file types: PDF or CSV (max 20MB). Files are stored for 24-hours.";
 
 export interface WorkflowInputEditorProps {
   schema: JsonSchema | null;

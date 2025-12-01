@@ -1,8 +1,15 @@
+export type CostBreakdownEntry = {
+  key: string;
+  label: string;
+  value: number;
+};
+
 export type NormalizedCostBreakdown = {
   inputCost: number | null;
   outputCost: number | null;
   totalCost: number | null;
   currency: string | null;
+  breakdownEntries: CostBreakdownEntry[];
   provided: {
     input: boolean;
     output: boolean;
@@ -32,6 +39,7 @@ export function normalizeCostPayload(payload: unknown): NormalizedCostBreakdown 
   const outputField = extractCostField(record, COST_FIELD_ALIASES.output);
   const totalField = extractCostField(record, COST_FIELD_ALIASES.total);
   const currencyField = extractCostField(record, COST_FIELD_ALIASES.currency);
+  const breakdownEntries = extractBreakdownEntries(record);
 
   const currency =
     typeof currencyField.value === "string" && currencyField.value.trim().length > 0
@@ -43,6 +51,7 @@ export function normalizeCostPayload(payload: unknown): NormalizedCostBreakdown 
     outputCost: parseCostValue(outputField.value),
     totalCost: parseCostValue(totalField.value),
     currency,
+    breakdownEntries,
     provided: {
       input: inputField.provided,
       output: outputField.provided,
@@ -99,6 +108,25 @@ function extractCostField(record: Record<string, unknown>, keys: string[]): Cost
   return { provided: false, value: undefined };
 }
 
+function extractBreakdownEntries(record: Record<string, unknown>): CostBreakdownEntry[] {
+  const entries: CostBreakdownEntry[] = [];
+
+  for (const [key, value] of Object.entries(record)) {
+    const parsed = parseCostValue(value);
+    if (parsed === null) {
+      continue;
+    }
+
+    entries.push({
+      key,
+      label: formatBreakdownLabel(key),
+      value: parsed,
+    });
+  }
+
+  return entries;
+}
+
 function parseCostValue(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -114,4 +142,17 @@ function parseCostValue(value: unknown): number | null {
   }
 
   return null;
+}
+
+function formatBreakdownLabel(key: string): string {
+  const cleaned = key
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) {
+    return key;
+  }
+
+  return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
 }
