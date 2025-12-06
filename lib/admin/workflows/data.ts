@@ -45,6 +45,7 @@ export type WorkflowListItem = {
   description: string;
   iconUrl: string | null;
   isPublished: boolean;
+  visibility: "CATALOG" | "PRIVATE";
   createdAt: string;
   updatedAt: string;
   totalRuns30d: number;
@@ -120,6 +121,7 @@ export const workflowUpsertSchema = z.object({
   n8nWebhookUrl: z.string().trim().url().max(2048),
   inputSchema: z.union([z.string().trim().min(2), z.record(z.string(), z.any())]),
   isPublished: z.boolean().default(false),
+  visibility: z.enum(["CATALOG", "PRIVATE"]).default("CATALOG"),
   estimatedMinutesSaved: z
     .union([estimatedMinutesSavedValueSchema, z.undefined()])
     .transform((value) => (value === undefined ? null : value)),
@@ -137,6 +139,7 @@ type WorkflowUpsertParsed = {
   n8n_webhook_url: string;
   input_schema: JsonSchema;
   is_published: boolean;
+  visibility: "CATALOG" | "PRIVATE";
   icon_url?: string | null;
   estimated_minutes_saved: number | null;
 };
@@ -150,6 +153,7 @@ type WorkflowDetailRow = {
   n8n_webhook_url: string;
   input_schema: JsonSchema;
   is_published: boolean;
+  visibility: "CATALOG" | "PRIVATE";
   estimated_minutes_saved: number | null;
   created_at: string;
   updated_at: string;
@@ -164,6 +168,7 @@ export type WorkflowDetail = {
   n8nWebhookUrl: string;
   inputSchema: JsonSchema;
   isPublished: boolean;
+  visibility: "CATALOG" | "PRIVATE";
   estimatedMinutesSaved: number | null;
   createdAt: string;
   updatedAt: string;
@@ -218,6 +223,7 @@ function normalizeUpsertPayload(
     n8n_webhook_url: parsed.n8nWebhookUrl,
     input_schema: parseInputSchema(parsed.inputSchema),
     is_published: parsed.isPublished ?? false,
+    visibility: parsed.visibility,
     icon_url: iconPath ?? (shouldRemoveIcon ? null : undefined),
     estimated_minutes_saved: parsed.estimatedMinutesSaved,
   };
@@ -249,6 +255,7 @@ export async function listWorkflows(
         public_desc,
         icon_url,
         is_published,
+        visibility,
         created_at,
         updated_at
       `,
@@ -315,6 +322,7 @@ export async function listWorkflows(
         description: row.public_desc,
         iconUrl: await resolveWorkflowIconUrl(row.icon_url),
         isPublished: row.is_published,
+        visibility: row.visibility ?? "CATALOG",
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         totalRuns30d: metrics?.total_runs_30d ?? 0,
@@ -356,6 +364,7 @@ export async function getWorkflowDetail(id: string): Promise<WorkflowDetail | nu
         n8n_webhook_url,
         input_schema,
         is_published,
+        visibility,
         estimated_minutes_saved,
         created_at,
         updated_at
@@ -381,6 +390,7 @@ export async function getWorkflowDetail(id: string): Promise<WorkflowDetail | nu
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
+    visibility: data.visibility,
     estimatedMinutesSaved: data.estimated_minutes_saved,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -423,6 +433,7 @@ export async function createWorkflow(
         n8n_webhook_url,
         input_schema,
         is_published,
+        visibility,
         estimated_minutes_saved,
         created_at,
         updated_at
@@ -443,6 +454,7 @@ export async function createWorkflow(
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
+    visibility: data.visibility,
     estimatedMinutesSaved: data.estimated_minutes_saved,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -487,6 +499,7 @@ export async function updateWorkflow(
         n8n_webhook_url,
         input_schema,
         is_published,
+        visibility,
         estimated_minutes_saved,
         created_at,
         updated_at
@@ -507,6 +520,7 @@ export async function updateWorkflow(
     n8nWebhookUrl: data.n8n_webhook_url,
     inputSchema: data.input_schema,
     isPublished: data.is_published,
+    visibility: data.visibility,
     estimatedMinutesSaved: data.estimated_minutes_saved,
     createdAt: data.created_at,
     updatedAt: data.updated_at,

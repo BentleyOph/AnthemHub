@@ -332,13 +332,19 @@ export async function getClientOverviewData(): Promise<ClientOverviewData> {
   }
 
   const assignedRows = (assignedResult.data ?? []) as unknown as AssignedWorkflowRow[];
-  const assignedWorkflowCount = assignedRows.length;
-  const assignedWorkflowIds = assignedRows
+  
+  // Filter out unpublished workflows - clients should not see or run them
+  const publishedAssignedRows = assignedRows.filter(
+    (row) => row.workflow && row.workflow.is_published === true,
+  );
+  
+  const assignedWorkflowCount = publishedAssignedRows.length;
+  const assignedWorkflowIds = publishedAssignedRows
     .map((row) => row.workflow_id)
     .filter(Boolean);
 
   const assignedHero = await Promise.all(
-    assignedRows
+    publishedAssignedRows
       .filter((row) => row.workflow && row.workflow.id)
       .slice(0, 3)
       .map(async (row): Promise<ClientOverviewAssignedWorkflow> => {

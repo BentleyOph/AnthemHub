@@ -207,6 +207,7 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
             <TableRow>
               <TableHead className="w-[240px]">Workflow</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Visibility</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Total runs (30d)</TableHead>
@@ -219,7 +220,7 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
           <TableBody>
             {result.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
                   {search || status !== "ALL"
                     ? "No workflows match the current filters."
                     : "No workflows created yet. Start by creating your first workflow."}
@@ -254,6 +255,11 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
                   <TableCell>
                     <Badge variant={workflow.isPublished ? "default" : "secondary"}>
                       {workflow.isPublished ? "Published" : "Draft"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={workflow.visibility === "PRIVATE" ? "secondary" : "outline"}>
+                      {workflow.visibility === "PRIVATE" ? "🔒 Private" : "📢 Catalog"}
                     </Badge>
                   </TableCell>
                   <TableCell>{formatDate(workflow.updatedAt, timeZone)}</TableCell>

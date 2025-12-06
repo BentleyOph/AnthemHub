@@ -148,6 +148,11 @@ export async function getWorkflowRunData(
     return null;
   }
 
+  // Unpublished workflows should not be accessible to clients
+  if (!workflowRow.is_published) {
+    return null;
+  }
+
   let assignment: AccessRow | null = null;
   let presets: WorkflowRunPreset[] = [];
 

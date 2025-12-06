@@ -13,6 +13,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { WorkflowDetail } from "@/lib/admin/workflows/data";
 import { parseJsonSchema } from "@/lib/schema/jsonschema";
 
@@ -30,6 +37,7 @@ type FormState = {
   internalNotes: string;
   n8nWebhookUrl: string;
   isPublished: boolean;
+  visibility: "CATALOG" | "PRIVATE";
   estimatedMinutesSaved: string;
   inputSchemaText: string;
   inputSchemaValid: boolean;
@@ -86,6 +94,7 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
       internalNotes: workflow?.internalNotes ?? "",
       n8nWebhookUrl: workflow?.n8nWebhookUrl ?? "",
       isPublished: workflow?.isPublished ?? false,
+      visibility: workflow?.visibility ?? "CATALOG",
       estimatedMinutesSaved:
         workflow?.estimatedMinutesSaved !== null && workflow?.estimatedMinutesSaved !== undefined
           ? String(workflow.estimatedMinutesSaved)
@@ -173,6 +182,7 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
     formData.set("estimatedMinutesSaved", formState.estimatedMinutesSaved.trim());
     formData.set("inputSchema", formState.inputSchemaText);
     formData.set("isPublished", String(formState.isPublished));
+    formData.set("visibility", formState.visibility);
     if (formState.iconFile) {
       formData.set("icon", formState.iconFile);
     }
@@ -252,6 +262,7 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
         formState.n8nWebhookUrl !== "" ||
         formState.estimatedMinutesSaved !== "" ||
         formState.isPublished ||
+        formState.visibility !== "CATALOG" ||
         formState.inputSchemaText !== DEFAULT_SCHEMA ||
         formState.iconFile !== null
       );
@@ -267,6 +278,7 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
           ? String(workflow.estimatedMinutesSaved)
           : "") ||
       formState.isPublished !== workflow.isPublished ||
+      formState.visibility !== workflow.visibility ||
       formState.removeIcon ||
       !!formState.iconFile ||
       formState.inputSchemaText !== JSON.stringify(workflow.inputSchema, null, 2)
@@ -499,7 +511,38 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
           </div>
 
           <div className="space-y-3 rounded-lg border p-4">
-            <Label className="font-medium">Publication</Label>
+            <Label className="font-medium">Visibility & Status</Label>
+
+            {/* Visibility Select */}
+            <div className="space-y-2">
+              <Label htmlFor="workflow-visibility" className="text-xs text-muted-foreground">
+                Visibility
+              </Label>
+              <Select
+                value={formState.visibility}
+                onValueChange={(val) =>
+                  setFormState((prev) => ({ ...prev, visibility: val as "CATALOG" | "PRIVATE" }))
+                }
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id="workflow-visibility">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CATALOG">Public</SelectItem>
+                  <SelectItem value="PRIVATE">Private</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formState.visibility === "CATALOG"
+                  ? "Visible to all clients in the catalog."
+                  : "Hidden from catalog. Only accessible if assigned by admin."}
+              </p>
+            </div>
+
+            <div className="my-2 h-px bg-border" />
+
+            {/* Published Checkbox */}
             <div className="flex items-start gap-3">
               <Checkbox
                 id="workflow-published"
@@ -515,7 +558,7 @@ export function WorkflowForm({ mode, workflow, showHeader = true }: Props) {
               <div className="space-y-1 text-sm">
                 <Label htmlFor="workflow-published">Published</Label>
                 <p className="text-xs text-muted-foreground">
-                  Published workflows appear in the client catalog and can be requested for access.
+                  Drafts are never visible/runnable, regardless of visibility setting.
                 </p>
               </div>
             </div>
