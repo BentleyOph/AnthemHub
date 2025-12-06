@@ -12,6 +12,7 @@ export function parseBooleanString(value: string | null | undefined): boolean {
 export function parseMultipartPayload(formData: FormData): WorkflowUpsertInput {
   const icon = formData.get("icon");
   const removeIconValue = formData.get("removeIcon");
+  const visibilityValue = formData.get("visibility")?.toString();
 
   return {
     name: formData.get("name")?.toString() ?? "",
@@ -21,6 +22,7 @@ export function parseMultipartPayload(formData: FormData): WorkflowUpsertInput {
     estimatedMinutesSaved: formData.get("estimatedMinutesSaved")?.toString(),
     inputSchema: formData.get("inputSchema")?.toString() ?? "",
     isPublished: parseBooleanString(formData.get("isPublished")?.toString() ?? null),
+    visibility: visibilityValue === "PRIVATE" ? "PRIVATE" : "CATALOG",
     iconFile: icon instanceof File && icon.size > 0 ? icon : undefined,
     removeIcon:
       typeof removeIconValue === "string"
@@ -74,6 +76,7 @@ export async function extractWorkflowPayload(
       | undefined,
     inputSchema,
     isPublished: Boolean(typed.isPublished),
+    visibility: typed.visibility === "PRIVATE" ? "PRIVATE" : "CATALOG",
     removeIcon: Boolean(typed.removeIcon),
   };
 }

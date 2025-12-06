@@ -66,9 +66,9 @@ export async function POST(request: NextRequest) {
 
   const { data: workflowRow, error: workflowError } = await supabase
     .from("workflow")
-    .select("id, is_published")
+    .select("id, is_published, visibility")
     .eq("id", payload.workflowId)
-    .maybeSingle<{ id: string; is_published: boolean | null }>();
+    .maybeSingle<{ id: string; is_published: boolean | null; visibility: string }>();
 
   if (workflowError) {
     console.error("Failed to load workflow for access request", workflowError);
@@ -86,6 +86,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Workflow is not available for requests yet." },
       { status: 400 },
+    );
+  }
+
+  if (workflowRow.visibility === "PRIVATE") {
+    return NextResponse.json(
+      { error: "This workflow is private and cannot be requested. Contact your account manager." },
+      { status: 403 },
     );
   }
 

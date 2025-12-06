@@ -128,17 +128,22 @@ async function loadAssignedWorkflows(
 
   const assignedRows = (data ?? []) as unknown as AccessRow[];
 
-  if (assignedRows.length === 0) {
+  // Filter out unpublished workflows - clients should not see or run them
+  const publishedRows = assignedRows.filter(
+    (row) => row.workflow && row.workflow.is_published === true,
+  );
+
+  if (publishedRows.length === 0) {
     return [];
   }
 
-  const workflowIds = assignedRows
+  const workflowIds = publishedRows
     .map((row) => row.workflow?.id ?? row.workflow_id)
     .filter((value): value is string => Boolean(value));
 
   const lastRunMap = await loadLastRuns(supabase, profile.clientId, workflowIds);
 
-  return Promise.all(assignedRows.map((row) => mapAssignedWorkflow(row, lastRunMap)));
+  return Promise.all(publishedRows.map((row) => mapAssignedWorkflow(row, lastRunMap)));
 }
 
 async function loadLastRuns(

@@ -73,6 +73,7 @@ async function loadWorkflows(
     .from("workflow")
     .select("id, name, public_desc, icon_url, is_published, updated_at")
     .eq("is_published", true)
+    .eq("visibility", "CATALOG")
     .order("updated_at", { ascending: false });
 
   if (error) {
