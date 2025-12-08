@@ -228,7 +228,18 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
               </TableRow>
             ) : (
               result.data.map((workflow) => (
-                <TableRow key={workflow.id}>
+                <TableRow
+                  key={workflow.id}
+                  className="cursor-pointer hover:bg-muted/60"
+                  onClick={() => router.push(`/admin/workflows/${workflow.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/admin/workflows/${workflow.id}`);
+                    }
+                  }}
+                  tabIndex={0}
+                >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border bg-muted/40">
