@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 interface WorkflowIconProps {
   iconUrl: string | null;
   name: string;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }
 
 export function WorkflowIcon({ iconUrl, name, size = "md" }: WorkflowIconProps) {
-  const dimension = size === "sm" ? "size-10" : "size-12";
+  const dimension = size === "sm" ? "size-10" : size === "lg" ? "size-20" : "size-12";
 
   if (iconUrl && iconUrl.length > 0) {
-    const pixels = size === "sm" ? 40 : 48;
+    const pixels = size === "sm" ? 40 : size === "lg" ? 80 : 48;
 
     return (
       <span className={cn("shrink-0 overflow-hidden rounded-lg border", dimension)}>
@@ -37,7 +37,7 @@ export function WorkflowIcon({ iconUrl, name, size = "md" }: WorkflowIconProps) 
       )}
       aria-hidden
     >
-      <IconPlayerPlay className="size-5" />
+      <IconPlayerPlay className={size === "lg" ? "size-7" : "size-5"} />
     </span>
   );
 }
