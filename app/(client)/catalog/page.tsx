@@ -2,10 +2,21 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { IconChevronRight } from "@tabler/icons-react";
 
+import { Fades } from "@/components/animate-ui/primitives/effects/fade";
 import { RequestAccessButton } from "@/components/client/request-access-button";
 import { WorkflowIcon } from "@/components/client/workflow-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   Card,
   CardDescription,
@@ -29,6 +40,7 @@ export default function CatalogPage() {
 async function CatalogContent() {
   const data = await getClientCatalogData();
   const canRequest = Boolean(data.profile.clientId);
+  const workflowsToShow = data.workflows.slice(0, 6);
 
   return (
     <div className="flex flex-col gap-8">
@@ -62,13 +74,15 @@ async function CatalogContent() {
 
         {data.workflows.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {data.workflows.map((workflow) => (
-              <WorkflowCard
-                key={workflow.id}
-                workflow={workflow}
-                canRequest={canRequest}
-              />
-            ))}
+            <Fades holdDelay={140} className="h-full">
+              {workflowsToShow.map((workflow) => (
+                <WorkflowCard
+                  key={workflow.id}
+                  workflow={workflow}
+                  canRequest={canRequest}
+                />
+              ))}
+            </Fades>
           </div>
         ) : (
           <Card className="border-dashed">
@@ -119,19 +133,11 @@ function WorkflowCard({
       </CardHeader>
       <CardFooter className="flex flex-wrap items-center gap-2">
         {workflow.isAssigned ? (
-          <>
-            <Button size="sm" asChild>
-              <Link href={`/workflows/${workflow.id}/run`}>
-                Run
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="#">
-                Details
-                <IconChevronRight className="size-3.5" />
-              </Link>
-            </Button>
-          </>
+          <Button size="sm" asChild>
+            <Link href={`/workflows/${workflow.id}/run`}>
+              Run
+            </Link>
+          </Button>
         ) : (
           <RequestAccessButton
             workflowId={workflow.id}
@@ -145,6 +151,75 @@ function WorkflowCard({
             }
           />
         )}
+
+        <Drawer direction="right">
+          <DrawerTrigger asChild>
+            <Button variant="ghost" size="sm" type="button">
+              Details
+              <IconChevronRight className="size-3.5" />
+            </Button>
+          </DrawerTrigger>
+
+          <DrawerContent className="sm:max-w-md">
+            <DrawerHeader className="border-b">
+              <div className="flex items-start gap-3">
+                <WorkflowIcon iconUrl={workflow.iconUrl} name={workflow.name} />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <DrawerTitle className="text-lg font-semibold leading-tight">
+                      {workflow.name}
+                    </DrawerTitle>
+                    {statusBadge}
+                  </div>
+                  <DrawerDescription>
+                    {workflow.isAssigned
+                      ? "Assigned to your workspace"
+                      : "Available in catalog"}
+                  </DrawerDescription>
+                  {hasRequest && requestedAtLabel ? (
+                    <p className="text-xs text-muted-foreground">
+                      Requested {requestedAtLabel}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </DrawerHeader>
+
+            <div className="space-y-3 px-4 py-4">
+              <p className="text-sm leading-relaxed text-foreground">
+                {workflow.description || "No description provided yet."}
+              </p>
+            </div>
+
+            <DrawerFooter className="border-t">
+              {workflow.isAssigned ? (
+                <Button size="sm" asChild>
+                  <Link href={`/workflows/${workflow.id}/run`}>
+                    Run workflow
+                  </Link>
+                </Button>
+              ) : (
+                <RequestAccessButton
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  status={workflow.requestStatus}
+                  disabled={!canRequest}
+                  disabledReason={
+                    canRequest
+                      ? null
+                      : "You need to be linked to a client workspace before requesting access."
+                  }
+                />
+              )}
+
+              <DrawerClose asChild>
+                <Button variant="outline" size="sm" type="button">
+                  Close
+                </Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </CardFooter>
     </Card>
   );
