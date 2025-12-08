@@ -214,13 +214,12 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
               <TableHead className="text-right">Success rate (30d)</TableHead>
               <TableHead className="text-right">Avg runtime</TableHead>
               <TableHead className="text-right">Active schedules</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {result.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                   {search || status !== "ALL"
                     ? "No workflows match the current filters."
                     : "No workflows created yet. Start by creating your first workflow."}
@@ -286,11 +285,6 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatInteger(workflow.activeSchedules)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="link" size="sm" asChild>
-                      <Link href={`/admin/workflows/${workflow.id}`}>View</Link>
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))
