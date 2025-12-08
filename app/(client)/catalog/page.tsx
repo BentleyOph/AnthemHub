@@ -113,7 +113,7 @@ function WorkflowCard({
   return (
     <Card className="flex h-full flex-col justify-between border border-border/70">
       <CardHeader className="flex flex-row items-start gap-3 space-y-0">
-        <WorkflowIcon iconUrl={workflow.iconUrl} name={workflow.name} />
+        <WorkflowIcon iconUrl={workflow.iconUrl} name={workflow.name} size="lg" />
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <CardTitle className="text-base font-semibold leading-snug">
@@ -163,7 +163,7 @@ function WorkflowCard({
           <DrawerContent className="sm:max-w-md">
             <DrawerHeader className="border-b">
               <div className="flex items-start gap-3">
-                <WorkflowIcon iconUrl={workflow.iconUrl} name={workflow.name} />
+                <WorkflowIcon iconUrl={workflow.iconUrl} name={workflow.name} size="lg" />
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <DrawerTitle className="text-lg font-semibold leading-tight">
