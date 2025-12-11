@@ -1,16 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import {
-  IconArrowLeft,
-  IconDownload,
-  IconHistory,
-  IconPlayerPlay,
-} from "@tabler/icons-react";
+import { IconArrowLeft, IconHistory, IconPlayerPlay } from "@tabler/icons-react";
 
 import { ClientExecutionTimeline } from "@/components/client/execution-timeline";
 import { ClientExecutionStatusBadge } from "@/components/client/execution-status-badge";
 import { ExecutionResult } from "@/components/client/execution-result";
+import { ExecutionStats } from "@/components/client/execution-stats";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -128,37 +124,16 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <dl className="grid gap-6 text-sm sm:grid-cols-2 xl:grid-cols-4">
-            <div className="space-y-2">
-              <dt className="font-semibold text-foreground">Started</dt>
-              <dd className="text-muted-foreground">{formatDateTime(execution.startedAt, TIMEZONE)}</dd>
-            </div>
-            <div className="space-y-2">
-              <dt className="font-semibold text-foreground">Finished</dt>
-              <dd className="text-muted-foreground">{formatDateTime(execution.finishedAt, TIMEZONE)}</dd>
-            </div>
-            <div className="space-y-2">
-              <dt className="font-semibold text-foreground">Duration</dt>
-              <dd className="text-muted-foreground">{formatDuration(execution.durationMs)}</dd>
-            </div>
-            <div className="space-y-2">
-              <dt className="font-semibold text-foreground">Result</dt>
-              <dd>
-                {execution.resultFileUrl ? (
-                  <Button asChild size="sm" variant="outline">
-                    <a href={execution.resultFileUrl} target="_blank" rel="noreferrer">
-                      <IconDownload className="mr-2 size-4" />
-                      Download file
-                    </a>
-                  </Button>
-                ) : execution.outputPayload != null ? (
-                  <span className="text-muted-foreground">Displayed below</span>
-                ) : (
-                  <span className="text-muted-foreground">Not available</span>
-                )}
-              </dd>
-            </div>
-          </dl>
+          <ExecutionStats
+            executionId={execution.id}
+            timezone={TIMEZONE}
+            startedAt={execution.startedAt}
+            finishedAt={execution.finishedAt}
+            durationMs={execution.durationMs}
+            resultFileUrl={execution.resultFileUrl}
+            outputPayload={execution.outputPayload}
+            isLive={isLive}
+          />
         </CardContent>
       </Card>
 
@@ -195,46 +170,6 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
       />
     </div>
   );
-}
-
-function formatDateTime(value: string | null, timezone: string): string {
-  if (!value) {
-    return "--";
-  }
-
-  try {
-    const formatter = new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: timezone,
-    });
-    return formatter.format(new Date(value));
-  } catch (error) {
-    console.error("Failed to format datetime", error);
-    return value;
-  }
-}
-
-function formatDuration(ms: number | null): string {
-  if (ms === null || ms < 0) {
-    return "--";
-  }
-
-  const totalSeconds = Math.floor(ms / 1000);
-  if (totalSeconds < 1) {
-    return "<1s";
-  }
-
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const parts: string[] = [];
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  if (seconds > 0 && hours === 0) parts.push(`${seconds}s`);
-
-  return parts.join(" ") || "0s";
 }
 
 function prettyJson(value: unknown): string {
