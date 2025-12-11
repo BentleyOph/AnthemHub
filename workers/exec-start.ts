@@ -6,6 +6,7 @@ dotenvConfig({ path: path.resolve(process.cwd(), ".env.local") });
 import type { Job, Worker, WorkerOptions } from "bullmq";
 
 import { getExecutionWorker, type ExecutionJob } from "@/lib/queue";
+import { sendExecutionNotificationEmail } from "@/lib/email/send-execution-email";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 const supabase = getSupabaseServiceRoleClient();
@@ -149,7 +150,16 @@ async function markExecutionFailed(
     console.error("Failed to mark execution as ERROR", updateError, {
       executionId: job.data.executionId,
     });
+    return;
   }
+
+  // Send failure notification email (fire-and-forget)
+  sendExecutionNotificationEmail(job.data.executionId).catch((emailError) => {
+    console.error("[Worker] Failed to send execution failure email", {
+      executionId: job.data.executionId,
+      error: emailError instanceof Error ? emailError.message : String(emailError),
+    });
+  });
 }
 
 export function createExecutionWorker(): Worker<ExecutionJob> {
