@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { normalizeCostPayload, sanitizeCostJson } from "@/lib/costs";
+import { sendExecutionNotificationEmail } from "@/lib/email/send-execution-email";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 // Progress update: stage + message, no status
@@ -149,6 +150,14 @@ export async function POST(request: NextRequest) {
   }
 
   if (didFinalize) {
+    // Send email notification (fire-and-forget, won't block response)
+    sendExecutionNotificationEmail(payload.execution_id).catch((error) => {
+      console.error("[Callback] Failed to send execution email", {
+        executionId: payload.execution_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+
     revalidatePath("/executions");
     revalidatePath("/overview");
     revalidatePath("/admin/executions");
