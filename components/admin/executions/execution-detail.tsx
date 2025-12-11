@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useExecutionStream } from "@/hooks/use-execution-stream";
+import { PayloadViewer } from "@/components/payload-viewer";
 
 type Props = {
   execution: ExecutionDetail;
@@ -406,35 +407,19 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
         </TabsContent>
 
         <TabsContent value="input">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Input payload</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => copyJson(execution.inputPayload)}>
-                <IconCopy className="mr-2 size-4" /> Copy JSON
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <pre className="max-h-[480px] w-full max-w-full overflow-auto rounded-lg bg-muted/30 p-4 text-xs whitespace-pre-wrap break-all">
-                {prettyJson(execution.inputPayload)}
-              </pre>
-            </CardContent>
-          </Card>
+          <PayloadViewer
+            data={execution.inputPayload}
+            title="Input payload"
+            description="Values provided when starting this execution."
+          />
         </TabsContent>
 
         <TabsContent value="output">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Output payload</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => copyJson(execution.outputPayload)}>
-                <IconCopy className="mr-2 size-4" /> Copy JSON
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <pre className="max-h-[480px] w-full max-w-full overflow-auto rounded-lg bg-muted/30 p-4 text-xs whitespace-pre-wrap break-all">
-                {execution.outputPayload ? prettyJson(execution.outputPayload) : "{}"}
-              </pre>
-            </CardContent>
-          </Card>
+          <PayloadViewer
+            data={execution.outputPayload}
+            title="Output payload"
+            description="Result data from the workflow execution."
+          />
         </TabsContent>
 
         <TabsContent value="metadata">

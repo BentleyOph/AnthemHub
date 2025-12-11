@@ -7,6 +7,7 @@ import { ClientExecutionTimeline } from "@/components/client/execution-timeline"
 import { ClientExecutionStatusBadge } from "@/components/client/execution-status-badge";
 import { ExecutionResult } from "@/components/client/execution-result";
 import { ExecutionStats } from "@/components/client/execution-stats";
+import { PayloadViewer } from "@/components/payload-viewer";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -146,19 +147,11 @@ async function ExecutionDetailContent({ executionId }: { executionId: string }) 
         />
 
         {showInputSummary && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Input summary</CardTitle>
-              <CardDescription>
-                Values provided when starting this run.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <pre className="max-h-96 w-full max-w-full overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed whitespace-pre-wrap break-all">
-                {prettyJson(execution.inputPayload)}
-              </pre>
-            </CardContent>
-          </Card>
+          <PayloadViewer
+            data={execution.inputPayload}
+            title="Input summary"
+            description="Values provided when starting this run."
+          />
         )}
       </div>
 
