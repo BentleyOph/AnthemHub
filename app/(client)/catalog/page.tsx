@@ -40,7 +40,7 @@ export default function CatalogPage() {
 async function CatalogContent() {
   const data = await getClientCatalogData();
   const canRequest = Boolean(data.profile.clientId);
-  const workflowsToShow = data.workflows.slice(0, 6);
+  const workflowsToShow = data.workflows;
 
   return (
     <div className="flex flex-col gap-8">

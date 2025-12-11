@@ -366,6 +366,8 @@ function DiscoverSection({
   discover: ClientOverviewData["discover"];
   canRequest: boolean;
 }) {
+  const visible = discover.slice(0, 6);
+
   return (
     <Card className="flex h-full flex-col">
       <CardHeader>
@@ -375,9 +377,9 @@ function DiscoverSection({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1">
-        {discover.length > 0 ? (
+        {visible.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {discover.map((workflow) => (
+            {visible.map((workflow) => (
               <Card
                 key={workflow.id}
                 className="flex min-w-0 flex-col border border-border/60 bg-card/80"
