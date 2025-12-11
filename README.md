@@ -456,6 +456,10 @@ S3_SECRET_ACCESS_KEY=...
 APP_TIMEZONE=Africa/Nairobi
 N8N_HMAC_SECRET=...
 RATE_LIMIT_EXEC_START_PER_MIN=10
+
+# Email notifications (Resend)
+RESEND_API_KEY=re_...           # Resend API key
+RESEND_FROM_EMAIL=Anthem <noreply@anthem.agency>   # Sender address
 ```
 
 ---
