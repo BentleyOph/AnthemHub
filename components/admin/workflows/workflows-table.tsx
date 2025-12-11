@@ -82,6 +82,13 @@ function formatRuntime(seconds: number | null | undefined) {
   return `${minutes}m ${remaining}s`;
 }
 
+function truncate(text: string | null | undefined, max = 120) {
+  if (!text) return "";
+  const normalized = text.trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 3)}...`;
+}
+
 function stringifySearch(params: URLSearchParams) {
   const entries = Array.from(params.entries());
   if (entries.length === 0) return "";
@@ -257,7 +264,7 @@ export function AdminWorkflowsTable({ result, timeZone }: Props) {
                       <div>
                         <div className="font-medium">{workflow.name}</div>
                         <div className="text-xs text-muted-foreground line-clamp-2">
-                          {workflow.description}
+                          {truncate(workflow.description)}
                         </div>
                       </div>
                     </div>
