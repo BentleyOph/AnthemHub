@@ -9,10 +9,9 @@ An all-in-one platform for selling and operating pre-built n8n automations as pr
 - `/my/workflows` → `/overview` (client landing) and `/workflows`
 
 
+## 1) Stack Overview 
 
-## 1) Stack Overview (Updated)
-
-* **Frontend:** Next.js 15 (App Router) • React • TypeScript • TailwindCSS • **shadcn/ui**
+* **Frontend:** Next.js 16 (App Router) • React • TypeScript • TailwindCSS • **shadcn/ui**
 * **Auth & DB:** **Supabase** (Auth + Postgres + RLS).
 
   * **No ORM.** Use **@supabase/supabase-js** directly (queries, `insert/update/delete`, `rpc`, `storage`).
@@ -532,7 +531,7 @@ const { data } = await supabaseClient
 
 ---
 
-## 14) Epics for `TODO.md` (No-ORM Edition)
+## 14) Epics for `TODO.md` 
 
 1. **DB & RLS**
 
@@ -582,7 +581,7 @@ const { data } = await supabaseClient
 
 ---
 
-## 15) Notes & Gotchas (No-ORM)
+## 15) Notes & Gotchas
 
 * **RLS first:** Default all reads/writes through **user-scoped** supabase client to leverage RLS. Use **service role** only in trusted server routes (callbacks, seeds, admin jobs).
 * **Transactions:** For multi-step atomic ops, prefer **Postgres functions** + `rpc()` (e.g., “replace access set”, “finalize execution if still processing”).
