@@ -66,16 +66,14 @@ export function ClientSidebar({ user, ...props }: React.ComponentProps<typeof Si
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/overview">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Image
-                    src="/logo.svg"
-                    alt="Anthem logo"
-                    width={20}
-                    height={20}
-                    className="size-4"
-                    priority
-                  />
-                </div>
+                <Image
+                  src="/logo.svg"
+                  alt="Anthem logo"
+                  width={24}
+                  height={24}
+                  className="size-6"
+                  priority
+                />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Anthem Hub</span>
                   <span className="truncate text-xs">Client Portal</span>
