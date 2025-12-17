@@ -277,8 +277,7 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="usage">Usage</TabsTrigger>
           <TabsTrigger value="input">Input payload</TabsTrigger>
-          <TabsTrigger value="output">Output payload</TabsTrigger>
-          <TabsTrigger value="metadata">Metadata</TabsTrigger>
+          <TabsTrigger value="output">Output</TabsTrigger>
         </TabsList>
 
         <TabsContent value="timeline" className="space-y-4">
@@ -428,71 +427,39 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
         </TabsContent>
 
         <TabsContent value="output">
-          <PayloadViewer
-            data={execution.outputPayload}
-            title="Output payload"
-            description="Result data from the workflow execution."
-          />
-        </TabsContent>
+          <div className="space-y-4">
+            <PayloadViewer
+              data={execution.outputPayload}
+              title="Output"
+              description="Result data from the workflow execution."
+            />
 
-        <TabsContent value="metadata">
-          <Card>
-            <CardHeader>
-              <CardTitle>Execution metadata</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid gap-3 text-sm md:grid-cols-2">
-                <div>
-                  <dt className="font-medium text-foreground">Execution ID</dt>
-                  <dd className="font-mono text-xs text-muted-foreground">{execution.id}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-foreground">Workflow</dt>
-                  <dd>{execution.workflowName}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-foreground">Client</dt>
-                  <dd>{execution.clientName}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-foreground">Source</dt>
-                  <dd>{execution.source ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-foreground">n8n run ID</dt>
-                  <dd>{execution.n8nRunId ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-foreground">Result file</dt>
-                  <dd>
-                    {resultFileUrls.length > 0 ? (
-                      <div className="space-y-1">
-                        {resultFileUrls.map((url, index) => (
-                          <a
-                            key={`${url}-${index}`}
-                            className="break-all text-primary underline"
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {url}
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      "—"
-                    )}
-                  </dd>
-                </div>
-                <div className="md:col-span-2">
-                  <dt className="font-medium text-foreground">Error message</dt>
-                  <dd className="whitespace-pre-wrap break-all text-sm text-destructive">
-                    {execution.errorMessage ?? "—"}
-                  </dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Result files</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {resultFileUrls.length > 0 ? (
+                  <ul className="list-disc space-y-2 pl-4 text-sm">
+                    {resultFileUrls.map((url, index) => (
+                      <li key={`${url}-${index}`}>
+                        <a
+                          className="break-all text-primary underline"
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No files attached to this execution.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
