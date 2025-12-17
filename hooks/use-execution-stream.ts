@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import type { ResultFileValue } from "@/lib/result-files";
+
 export type ExecutionEvent = {
   id: string;
   timestamp: string;
@@ -15,7 +17,7 @@ export type ExecutionUpdate = {
   status?: string;
   finished_at?: string | null;
   output_payload?: unknown;
-  result_file_url?: string | null;
+  result_file_url?: ResultFileValue;
   error_message?: string | null;
 };
 

@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { ResultFileValue } from "@/lib/result-files";
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 import { getClientProfile, type ClientProfile } from "./profile";
@@ -52,7 +53,7 @@ export interface ClientExecutionListItem {
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
-  resultFileUrl: string | null;
+  resultFileUrl: ResultFileValue;
   startedByUserId: string | null;
   startedByUserName: string | null;
   startedByUserEmail: string | null;
@@ -87,7 +88,7 @@ type ExecutionRow = {
   status: ClientExecutionStatus;
   started_at: string;
   finished_at: string | null;
-  result_file_url: string | null;
+  result_file_url: ResultFileValue;
   started_by_name: string | null;
   started_by_email: string | null;
   user_id: string | null;

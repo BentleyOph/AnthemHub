@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 
 import { ClientAccessManager } from "@/components/admin/clients/client-access-manager";
+import { getPrimaryResultFileUrl, normalizeResultFileUrls } from "@/lib/result-files";
 import {
   Card,
   CardAction,
@@ -345,28 +346,41 @@ export default async function AdminClientDetailPage({ params }: RouteParams) {
                   </td>
                 </tr>
               ) : (
-                recentExecutions.map((execution) => (
-                  <tr key={execution.id} className="border-b last:border-b-0">
-                    <td className="px-2 py-2 font-medium">{execution.workflowName}</td>
-                    <td className="px-2 py-2">{execution.status}</td>
-                    <td className="px-2 py-2">{formatDate(execution.startedAt)}</td>
-                    <td className="px-2 py-2">{formatDuration(execution.durationMs)}</td>
-                    <td className="px-2 py-2">
-                      {execution.resultFileUrl ? (
-                        <a
-                          href={execution.resultFileUrl}
-                          className="text-primary hover:underline"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Download
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))
+                recentExecutions.map((execution) => {
+                  const resultFileUrls = normalizeResultFileUrls(execution.resultFileUrl);
+                  const primaryResultFileUrl = getPrimaryResultFileUrl(resultFileUrls);
+                  const additionalFileCount = resultFileUrls.length > 1 ? resultFileUrls.length - 1 : 0;
+
+                  return (
+                    <tr key={execution.id} className="border-b last:border-b-0">
+                      <td className="px-2 py-2 font-medium">{execution.workflowName}</td>
+                      <td className="px-2 py-2">{execution.status}</td>
+                      <td className="px-2 py-2">{formatDate(execution.startedAt)}</td>
+                      <td className="px-2 py-2">{formatDuration(execution.durationMs)}</td>
+                      <td className="px-2 py-2">
+                        {primaryResultFileUrl ? (
+                          <div className="space-y-1">
+                            <a
+                              href={primaryResultFileUrl}
+                              className="text-primary hover:underline"
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Download
+                            </a>
+                            {additionalFileCount > 0 && (
+                              <div className="text-[11px] text-muted-foreground">
+                                +{additionalFileCount} more file{additionalFileCount > 1 ? "s" : ""} attached
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

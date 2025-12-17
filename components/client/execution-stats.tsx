@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { IconDownload } from "@tabler/icons-react";
 
 import { useExecutionStream } from "@/hooks/use-execution-stream";
 import { Button } from "@/components/ui/button";
+import {
+  getPrimaryResultFileUrl,
+  normalizeResultFileUrls,
+  type ResultFileValue,
+} from "@/lib/result-files";
 
 type Props = {
   executionId: string;
@@ -12,7 +17,7 @@ type Props = {
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
-  resultFileUrl: string | null;
+  resultFileUrl: ResultFileValue;
   outputPayload: unknown;
   isLive: boolean;
 };
@@ -29,17 +34,16 @@ export function ExecutionStats({
 }: Props) {
   const { update } = useExecutionStream(isLive ? executionId : undefined);
 
-  const [resultFileUrl, setResultFileUrl] = useState(initialResultFileUrl);
-
   const liveFinishedAt = update?.finished_at ?? initialFinishedAt;
   const liveOutput = update?.output_payload ?? initialOutput;
 
   const resultUrlFromUpdate = update?.result_file_url;
-  useEffect(() => {
-    if (typeof resultUrlFromUpdate === "string" && resultUrlFromUpdate.length > 0) {
-      setResultFileUrl(resultUrlFromUpdate);
+  const resultFileUrls = useMemo(() => {
+    if (resultUrlFromUpdate !== undefined) {
+      return normalizeResultFileUrls(resultUrlFromUpdate);
     }
-  }, [resultUrlFromUpdate]);
+    return normalizeResultFileUrls(initialResultFileUrl);
+  }, [initialResultFileUrl, resultUrlFromUpdate]);
 
   const durationMs = useMemo(() => {
     if (liveFinishedAt) {
@@ -51,6 +55,8 @@ export function ExecutionStats({
   }, [initialDurationMs, liveFinishedAt, startedAt]);
 
   const hasOutput = liveOutput !== null && liveOutput !== undefined;
+  const primaryResultFileUrl = getPrimaryResultFileUrl(resultFileUrls);
+  const additionalFileCount = resultFileUrls.length > 1 ? resultFileUrls.length - 1 : 0;
 
   return (
     <dl className="grid gap-6 text-sm sm:grid-cols-2 xl:grid-cols-4">
@@ -69,9 +75,9 @@ export function ExecutionStats({
       <div className="space-y-2">
         <dt className="font-semibold text-foreground">Result</dt>
         <dd>
-          {resultFileUrl ? (
+          {primaryResultFileUrl ? (
             <Button asChild size="sm" variant="outline">
-              <a href={resultFileUrl} target="_blank" rel="noreferrer">
+              <a href={primaryResultFileUrl} target="_blank" rel="noreferrer">
                 <IconDownload className="mr-2 size-4" />
                 Download file
               </a>
@@ -80,6 +86,11 @@ export function ExecutionStats({
             <span className="text-muted-foreground">Displayed below</span>
           ) : (
             <span className="text-muted-foreground">Not available</span>
+          )}
+          {additionalFileCount > 0 && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              {additionalFileCount} more file{additionalFileCount > 1 ? "s" : ""} available below.
+            </div>
           )}
         </dd>
       </div>

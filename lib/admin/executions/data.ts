@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { ResultFileValue } from "@/lib/result-files";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const EXECUTION_STATUSES = [
@@ -62,7 +63,7 @@ type ExecutionRow = {
   user_id: string | null;
   started_at: string;
   finished_at: string | null;
-  result_file_url: string | null;
+  result_file_url: ResultFileValue;
   error_message: string | null;
   n8n_run_id: string | null;
   total_cost: number | string | null;
@@ -96,7 +97,7 @@ export type ExecutionListItem = {
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
-  resultFileUrl: string | null;
+  resultFileUrl: ResultFileValue;
   errorMessage: string | null;
   n8nRunId: string | null;
   totalCost: number | null;
@@ -117,7 +118,7 @@ export type ExecutionDetail = {
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
-  resultFileUrl: string | null;
+  resultFileUrl: ResultFileValue;
   errorMessage: string | null;
   n8nRunId: string | null;
   inputPayload: unknown;

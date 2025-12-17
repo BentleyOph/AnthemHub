@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { ResultFileValue } from "@/lib/result-files";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 const CLIENT_USAGE_LOOKBACK_DAYS = 30;
@@ -109,7 +110,7 @@ type ExecutionHistoryRow = {
   workflow_id: string;
   started_at: string;
   finished_at: string | null;
-  result_file_url: string | null;
+  result_file_url: ResultFileValue;
   workflow: {
     id: string;
     name: string | null;
@@ -190,7 +191,7 @@ export type ClientDetail = {
     startedAt: string;
     finishedAt: string | null;
     durationMs: number | null;
-    resultFileUrl: string | null;
+    resultFileUrl: ResultFileValue;
   }>;
 };
 
