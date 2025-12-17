@@ -14,6 +14,10 @@ import type {
   ClientExecutionListItem,
   ClientExecutionStatus,
 } from "@/lib/client/executions";
+import {
+  getPrimaryResultFileUrl,
+  normalizeResultFileUrls,
+} from "@/lib/result-files";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,6 +335,9 @@ export function ClientExecutionsTable({
           <TableBody>
           {items.map((item) => {
             const meta = STATUS_META[item.status];
+            const resultFileUrls = normalizeResultFileUrls(item.resultFileUrl);
+            const primaryResultFileUrl = getPrimaryResultFileUrl(resultFileUrls);
+            const additionalFileCount = resultFileUrls.length > 1 ? resultFileUrls.length - 1 : 0;
 
             return (
               <TableRow
@@ -367,18 +374,25 @@ export function ClientExecutionsTable({
                   {formatDuration(item.durationMs)}
                 </TableCell>
                 <TableCell className="align-middle text-right">
-                  {item.resultFileUrl ? (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <a href={item.resultFileUrl} target="_blank" rel="noreferrer">
-                        <IconFileDownload className="mr-1 size-4" />
-                        Download
-                      </a>
-                    </Button>
+                  {primaryResultFileUrl ? (
+                    <div className="space-y-1">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <a href={primaryResultFileUrl} target="_blank" rel="noreferrer">
+                          <IconFileDownload className="mr-1 size-4" />
+                          Download
+                        </a>
+                      </Button>
+                      {additionalFileCount > 0 && (
+                        <div className="text-[11px] text-muted-foreground">
+                          +{additionalFileCount} more file{additionalFileCount > 1 ? "s" : ""} in details
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <Button
                       asChild

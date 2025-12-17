@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ClientExecutionStatus } from "@/lib/client/executions";
 import { getClientProfile, type ClientProfile } from "@/lib/client/profile";
+import type { ResultFileValue } from "@/lib/result-files";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveWorkflowIconUrl } from "@/lib/storage/workflow-icons";
 
@@ -13,7 +14,7 @@ type ExecutionRow = {
   status: ClientExecutionStatus;
   started_at: string;
   finished_at: string | null;
-  result_file_url: string | null;
+  result_file_url: ResultFileValue;
   error_message: string | null;
   input_payload: unknown;
   output_payload: unknown;
@@ -43,7 +44,7 @@ export interface ClientExecutionDetail {
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
-  resultFileUrl: string | null;
+  resultFileUrl: ResultFileValue;
   errorMessage: string | null;
   inputPayload: unknown;
   outputPayload: unknown;
@@ -98,7 +99,7 @@ async function mapExecutionRow(row: ExecutionRow): Promise<ClientExecutionDetail
     startedAt: row.started_at,
     finishedAt: row.finished_at,
     durationMs: calculateDurationMs(row.started_at, row.finished_at),
-    resultFileUrl: row.result_file_url,
+    resultFileUrl: row.result_file_url ?? null,
     errorMessage: row.error_message,
     inputPayload: row.input_payload,
     outputPayload: row.output_payload,

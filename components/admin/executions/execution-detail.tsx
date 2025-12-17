@@ -16,6 +16,7 @@ import type {
   ExecutionEventItem,
   ExecutionEventsResult,
 } from "@/lib/admin/executions/data";
+import { getPrimaryResultFileUrl, normalizeResultFileUrls } from "@/lib/result-files";
 import { formatCostAmount, normalizeCostPayload } from "@/lib/costs";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,13 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
   // Use the execution stream hook for live updates
   const isLive = LIVE_STATUSES.has(execution.status);
   const { connected, events: streamEvents } = useExecutionStream(isLive ? execution.id : undefined);
+
+  const resultFileUrls = useMemo(
+    () => normalizeResultFileUrls(execution.resultFileUrl),
+    [execution.resultFileUrl],
+  );
+  const primaryResultFileUrl = getPrimaryResultFileUrl(resultFileUrls);
+  const additionalFileCount = resultFileUrls.length > 1 ? resultFileUrls.length - 1 : 0;
 
   const normalizedCost = useMemo(() => normalizeCostPayload(execution.costBreakdown), [execution.costBreakdown]);
   const totalCostValue = normalizedCost?.totalCost ?? execution.totalCost ?? null;
@@ -232,13 +240,18 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
             </div>
 
             <div className="flex flex-col items-start gap-3 lg:items-end">
-              {execution.resultFileUrl && (
+              {primaryResultFileUrl && (
                 <Button asChild variant="secondary" size="sm">
-                  <a href={execution.resultFileUrl} target="_blank" rel="noreferrer">
+                  <a href={primaryResultFileUrl} target="_blank" rel="noreferrer">
                     <IconFileExport className="mr-2 size-4" />
                     Download result
                   </a>
                 </Button>
+              )}
+              {additionalFileCount > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  +{additionalFileCount} more file{additionalFileCount > 1 ? "s" : ""} listed below
+                </div>
               )}
               {execution.errorMessage && (
                 <Card className="border-destructive/40 bg-destructive/10">
@@ -452,15 +465,20 @@ export function AdminExecutionDetail({ execution, events, timezone }: Props) {
                 <div>
                   <dt className="font-medium text-foreground">Result file</dt>
                   <dd>
-                    {execution.resultFileUrl ? (
-                      <a
-                        className="break-all text-primary underline"
-                        href={execution.resultFileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {execution.resultFileUrl}
-                      </a>
+                    {resultFileUrls.length > 0 ? (
+                      <div className="space-y-1">
+                        {resultFileUrls.map((url, index) => (
+                          <a
+                            key={`${url}-${index}`}
+                            className="break-all text-primary underline"
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {url}
+                          </a>
+                        ))}
+                      </div>
                     ) : (
                       "—"
                     )}

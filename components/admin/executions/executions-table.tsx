@@ -16,6 +16,7 @@ import {
 
 import type { ExecutionListResult, ExecutionSort, ExecutionStatus } from "@/lib/admin/executions/data";
 import { formatCostAmount } from "@/lib/costs";
+import { getPrimaryResultFileUrl, normalizeResultFileUrls } from "@/lib/result-files";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -522,70 +523,83 @@ export function AdminExecutionsList({ result, options, timezone }: Props) {
                   </TableCell>
                 </TableRow>
               )}
-              {result.data.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="cursor-pointer transition-colors hover:bg-muted/50"
-                  onClick={() => router.push(`/admin/executions/${row.id}`)}
-                >
-                  <TableCell className="font-mono text-xs">{truncateId(row.id)}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusBadgeVariant(row.status)} className="gap-1">
-                      {row.status === "SUCCESS" && <IconCircleCheck className="size-3" />}
-                      {row.status === "ERROR" && <IconAlertTriangle className="size-3" />}
-                      {row.status === "PROCESSING" && <IconPlayerPlay className="size-3" />}
-                      {row.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{row.workflowName}</TableCell>
-                  <TableCell>{row.clientName}</TableCell>
-                  <TableCell>
-                    {row.startedByUserName?.trim()
-                      ? row.startedByUserName
-                      : row.startedByUserEmail ?? "—"}
-                  </TableCell>
-                  <TableCell>{formatDateTime(row.startedAt, timezone)}</TableCell>
-                  <TableCell>{formatDuration(row.durationMs)}</TableCell>
-                  <TableCell>{formatCostAmount(row.totalCost, row.costCurrency)}</TableCell>
-                  <TableCell>{row.source ?? "—"}</TableCell>
-                  <TableCell>
-                    {row.resultFileUrl ? (
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="link"
-                        className="px-0"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <a href={row.resultFileUrl} target="_blank" rel="noreferrer">
-                          <IconFileExport className="mr-1 size-4" />
-                          Download
-                        </a>
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {row.errorMessage ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="line-clamp-1 text-sm text-destructive" onClick={(event) => event.stopPropagation()}>
+              {result.data.map((row) => {
+                const resultFileUrls = normalizeResultFileUrls(row.resultFileUrl);
+                const primaryResultFileUrl = getPrimaryResultFileUrl(resultFileUrls);
+                const additionalFileCount = resultFileUrls.length > 1 ? resultFileUrls.length - 1 : 0;
+
+                return (
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer transition-colors hover:bg-muted/50"
+                    onClick={() => router.push(`/admin/executions/${row.id}`)}
+                  >
+                    <TableCell className="font-mono text-xs">{truncateId(row.id)}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(row.status)} className="gap-1">
+                        {row.status === "SUCCESS" && <IconCircleCheck className="size-3" />}
+                        {row.status === "ERROR" && <IconAlertTriangle className="size-3" />}
+                        {row.status === "PROCESSING" && <IconPlayerPlay className="size-3" />}
+                        {row.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{row.workflowName}</TableCell>
+                    <TableCell>{row.clientName}</TableCell>
+                    <TableCell>
+                      {row.startedByUserName?.trim()
+                        ? row.startedByUserName
+                        : row.startedByUserEmail ?? "—"}
+                    </TableCell>
+                    <TableCell>{formatDateTime(row.startedAt, timezone)}</TableCell>
+                    <TableCell>{formatDuration(row.durationMs)}</TableCell>
+                    <TableCell>{formatCostAmount(row.totalCost, row.costCurrency)}</TableCell>
+                    <TableCell>{row.source ?? "—"}</TableCell>
+                    <TableCell>
+                      {primaryResultFileUrl ? (
+                        <div className="space-y-1">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="link"
+                            className="px-0"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <a href={primaryResultFileUrl} target="_blank" rel="noreferrer">
+                              <IconFileExport className="mr-1 size-4" />
+                              Download
+                            </a>
+                          </Button>
+                          {additionalFileCount > 0 && (
+                            <div className="text-[11px] text-muted-foreground">
+                              +{additionalFileCount} more file{additionalFileCount > 1 ? "s" : ""} listed below
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {row.errorMessage ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="line-clamp-1 text-sm text-destructive" onClick={(event) => event.stopPropagation()}>
+                                {row.errorMessage}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap">
                               {row.errorMessage}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs whitespace-pre-wrap">
-                            {row.errorMessage}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

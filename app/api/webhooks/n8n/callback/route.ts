@@ -33,7 +33,7 @@ const successUpdateSchema = z.object({
   n8n_run_id: z.string().trim().min(1).optional(),
   status: z.literal("SUCCESS"),
   output: z.unknown(), // Allow any output structure
-  result_file_url: z.url().optional(),
+  result_file_url: z.union([z.url(), z.array(z.url())]).optional(),
   finished_at: z.iso.datetime({ offset: true }).optional(),
   cost: costPayloadSchema.optional(),
 });
@@ -241,7 +241,7 @@ async function finalizeSuccess(
     updates.n8n_run_id = payload.n8n_run_id;
   }
 
-  if (payload.result_file_url) {
+  if (payload.result_file_url !== undefined) {
     updates.result_file_url = payload.result_file_url;
   }
 
