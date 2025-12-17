@@ -5,7 +5,6 @@ import * as React from "react"
 import {
   IconDashboard,
   IconFolder,
-  IconInnerShadowTop,
   IconListDetails,
   IconReport,
   IconSettings,
@@ -83,7 +82,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/admin/overview">
-                <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Anthem Agency</span>
               </Link>
             </SidebarMenuButton>
